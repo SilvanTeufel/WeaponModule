@@ -15,6 +15,8 @@ class WEAPONMODULE_API UWeaponHUDWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	virtual void NativeConstruct() override;
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void UpdateWidget(class AUnitBase* Unit);
 
@@ -25,6 +27,15 @@ public:
 	void GetUnitAttributes(float& Health, float& MaxHealth, float& Shield, float& MaxShield, float& Mana, float& MaxMana, float& Experience, float& MaxExperience);
 
 protected:
+	UPROPERTY(meta = (BindWidget))
+	class UButton* ToggleTalentButton;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|UI")
+	class AUnitBase* CurrentUnit;
+
+	UFUNCTION()
+	void OnToggleTalentClicked();
+
 	// Health
 	UPROPERTY(meta = (BindWidget))
 	class UProgressBar* HealthBar;

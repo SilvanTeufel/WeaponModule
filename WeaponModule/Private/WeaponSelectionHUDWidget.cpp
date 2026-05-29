@@ -1,6 +1,7 @@
 // Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
 
 #include "WeaponSelectionHUDWidget.h"
+#include "WeaponTalentWidget.h"
 #include "Hud/HUDBase.h"
 #include "Characters/Unit/UnitBase.h"
 #include "WeaponComponent.h"
@@ -65,6 +66,45 @@ void UWeaponSelectionHUDWidget::CreateHUDWidgets()
 				}
 			}
 		}
+
+		if (IsDesignTime() && WeaponTalentContainer && WeaponTalentWidgetClass)
+		{
+			WeaponTalentContainer->ClearChildren();
+			if (UWeaponTalentWidget* PreviewWidget = CreateWidget<UWeaponTalentWidget>(this, WeaponTalentWidgetClass))
+			{
+				WeaponTalentContainer->AddChild(PreviewWidget);
+			}
+		}
+	}
+}
+
+void UWeaponSelectionHUDWidget::ToggleTalentWidget(AUnitBase* Unit)
+{
+	if (!WeaponTalentContainer || !WeaponTalentWidgetClass) return;
+
+	// Wenn das Widget bereits existiert und die gleiche Unit anzeigt, dann toggeln wir es weg (Collapsed)
+	if (TalentWidgetInstance)
+	{
+		if (TalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible && TalentWidgetInstance->GetTargetUnit() == Unit)
+		{
+			TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+			return;
+		}
+	}
+	else
+	{
+		// Erstellen, falls noch nicht vorhanden
+		TalentWidgetInstance = CreateWidget<UWeaponTalentWidget>(this, WeaponTalentWidgetClass);
+		if (TalentWidgetInstance)
+		{
+			WeaponTalentContainer->AddChild(TalentWidgetInstance);
+		}
+	}
+
+	if (TalentWidgetInstance)
+	{
+		TalentWidgetInstance->SetTargetUnit(Unit);
+		TalentWidgetInstance->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 

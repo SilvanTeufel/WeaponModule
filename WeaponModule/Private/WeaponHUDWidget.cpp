@@ -11,9 +11,22 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Components/Button.h"
+#include "WeaponSelectionHUDWidget.h"
+#include "WeaponHUDComponent.h"
+
+void UWeaponHUDWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (ToggleTalentButton)
+	{
+		ToggleTalentButton->OnClicked.AddDynamic(this, &UWeaponHUDWidget::OnToggleTalentClicked);
+	}
+}
 
 void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
 {
+	CurrentUnit = Unit;
 	if (!Unit)
 	{
 		SetVisibility(ESlateVisibility::Collapsed);
@@ -152,6 +165,36 @@ void UWeaponHUDWidget::GetUnitAttributes(float& Health, float& MaxHealth, float&
 			MaxExperience = (float)(Unit->LevelUpData.ExperiencePerLevel * Unit->LevelData.CharacterLevel);
 			if (MaxExperience <= 0) MaxExperience = 1.f; // Avoid division by zero in UI
 		}
+	}
+}
+
+void UWeaponHUDWidget::OnToggleTalentClicked()
+{
+	if (!CurrentUnit) return;
+
+	// Strategy 1: Via registered instance in PlayerController (Safest)
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+		{
+			if (HUDComp->WeaponSelectionWidgetInstance)
+			{
+				HUDComp->WeaponSelectionWidgetInstance->ToggleTalentWidget(CurrentUnit);
+				return;
+			}
+		}
+	}
+
+	// Strategy 2: Fallback - Search in the Outer hierarchy
+	UObject* CurrentOuter = GetOuter();
+	while (CurrentOuter)
+	{
+		if (UWeaponSelectionHUDWidget* SelectionWidget = Cast<UWeaponSelectionHUDWidget>(CurrentOuter))
+		{
+			SelectionWidget->ToggleTalentWidget(CurrentUnit);
+			return;
+		}
+		CurrentOuter = CurrentOuter->GetOuter();
 	}
 }
 

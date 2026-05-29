@@ -6,6 +6,19 @@
 
 UWeaponAttributeSet::UWeaponAttributeSet()
 {
+	InitDamageMultiplier(1.0f);
+	InitCooldownMultiplier(1.0f);
+	InitReloadSpeedMultiplier(1.0f);
+	InitPierceExtraCount(0.0f);
+	InitProjectileExtraCount(0.0f);
+	InitWeaponTalentPoints(0.0f);
+	InitDamageTalentLevel(0.0f);
+	InitCooldownTalentLevel(0.0f);
+	InitReloadSpeedTalentLevel(0.0f);
+	InitPierceTalentLevel(0.0f);
+	InitProjectileTalentLevel(0.0f);
+	InitMaxAmmoTalentLevel(0.0f);
+	InitAmountMagazinesTalentLevel(0.0f);
 }
 
 void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -15,6 +28,19 @@ void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, Ammo, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, MaxAmmo, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, AmountMagazines, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, WeaponTalentPoints, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, DamageMultiplier, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, CooldownMultiplier, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, PierceExtraCount, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, ProjectileExtraCount, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, ReloadSpeedMultiplier, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, DamageTalentLevel, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, CooldownTalentLevel, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, ReloadSpeedTalentLevel, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, PierceTalentLevel, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, ProjectileTalentLevel, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, MaxAmmoTalentLevel, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, AmountMagazinesTalentLevel, COND_None, REPNOTIFY_Always);
 }
 
 void UWeaponAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -52,26 +78,87 @@ void UWeaponAttributeSet::OnRep_AmountMagazines(const FGameplayAttributeData& Ol
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, AmountMagazines, OldAmountMagazines);
 }
 
+void UWeaponAttributeSet::OnRep_WeaponTalentPoints(const FGameplayAttributeData& OldWeaponTalentPoints)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, WeaponTalentPoints, OldWeaponTalentPoints);
+}
+
+void UWeaponAttributeSet::OnRep_DamageMultiplier(const FGameplayAttributeData& OldDamageMultiplier)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, DamageMultiplier, OldDamageMultiplier);
+}
+
+void UWeaponAttributeSet::OnRep_CooldownMultiplier(const FGameplayAttributeData& OldCooldownMultiplier)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, CooldownMultiplier, OldCooldownMultiplier);
+}
+
+void UWeaponAttributeSet::OnRep_PierceExtraCount(const FGameplayAttributeData& OldPierceExtraCount)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, PierceExtraCount, OldPierceExtraCount);
+}
+
+void UWeaponAttributeSet::OnRep_ProjectileExtraCount(const FGameplayAttributeData& OldProjectileExtraCount)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, ProjectileExtraCount, OldProjectileExtraCount);
+}
+
+void UWeaponAttributeSet::OnRep_ReloadSpeedMultiplier(const FGameplayAttributeData& OldReloadSpeedMultiplier)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, ReloadSpeedMultiplier, OldReloadSpeedMultiplier);
+}
+
+void UWeaponAttributeSet::OnRep_DamageTalentLevel(const FGameplayAttributeData& OldDamageTalentLevel)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, DamageTalentLevel, OldDamageTalentLevel);
+}
+
+void UWeaponAttributeSet::OnRep_CooldownTalentLevel(const FGameplayAttributeData& OldCooldownTalentLevel)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, CooldownTalentLevel, OldCooldownTalentLevel);
+}
+
+void UWeaponAttributeSet::OnRep_ReloadSpeedTalentLevel(const FGameplayAttributeData& OldReloadSpeedTalentLevel)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, ReloadSpeedTalentLevel, OldReloadSpeedTalentLevel);
+}
+
+void UWeaponAttributeSet::OnRep_PierceTalentLevel(const FGameplayAttributeData& OldPierceTalentLevel)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, PierceTalentLevel, OldPierceTalentLevel);
+}
+
+void UWeaponAttributeSet::OnRep_ProjectileTalentLevel(const FGameplayAttributeData& OldProjectileTalentLevel)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, ProjectileTalentLevel, OldProjectileTalentLevel);
+}
+
+void UWeaponAttributeSet::OnRep_MaxAmmoTalentLevel(const FGameplayAttributeData& OldMaxAmmoTalentLevel)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, MaxAmmoTalentLevel, OldMaxAmmoTalentLevel);
+}
+
+void UWeaponAttributeSet::OnRep_AmountMagazinesTalentLevel(const FGameplayAttributeData& OldAmountMagazinesTalentLevel)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, AmountMagazinesTalentLevel, OldAmountMagazinesTalentLevel);
+}
+
 void UWeaponAttributeSet::SetAttributeAmmo(float NewValue)
 {
-	if (GetAmmoAttribute().GetUProperty())
-	{
-		InitAmmo(NewValue);
-	}
+	SetAmmo(NewValue);
 }
 
 void UWeaponAttributeSet::SetAttributeMaxAmmo(float NewValue)
 {
-	if (GetMaxAmmoAttribute().GetUProperty())
-	{
-		InitMaxAmmo(NewValue);
-	}
+	SetMaxAmmo(NewValue);
 }
 
 void UWeaponAttributeSet::SetAttributeAmountMagazines(float NewValue)
 {
-	if (GetAmountMagazinesAttribute().GetUProperty())
-	{
-		InitAmountMagazines(NewValue);
-	}
+	SetAmountMagazines(NewValue);
+}
+
+void UWeaponAttributeSet::SetAttributeWeaponTalentPoints(float NewValue)
+{
+	SetWeaponTalentPoints(NewValue);
 }

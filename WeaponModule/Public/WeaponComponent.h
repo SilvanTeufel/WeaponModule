@@ -38,6 +38,9 @@ struct FWeaponData
 	float CooldownTime = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	float ReloadTime = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FGameplayTag WeaponTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
@@ -48,6 +51,33 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FTransform Offset = FTransform::Identity;
+};
+
+USTRUCT(BlueprintType)
+struct FWeaponUpgrade
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
+	FText Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
+	FGameplayAttribute Attribute;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
+	FGameplayAttribute LevelAttribute;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
+	float ModifierValue = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
+	TEnumAsByte<EGameplayModOp::Type> ModifierOp = EGameplayModOp::Additive;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
+	int32 Cost = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
+	UTexture2D* Icon = nullptr;
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -78,6 +108,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	FWeaponData GetCurrentWeaponData() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	bool PurchaseUpgrade(FWeaponUpgrade Upgrade);
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = "Preview")

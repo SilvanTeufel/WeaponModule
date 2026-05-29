@@ -2,6 +2,7 @@
 
 #include "ReloadAbility.h"
 #include "WeaponAttributeSet.h"
+#include "WeaponComponent.h"
 #include "AbilitySystemComponent.h"
 
 UReloadAbility::UReloadAbility()
@@ -21,6 +22,17 @@ void UReloadAbility::PerformReload()
 			FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(ReloadEffectClass);
 			if (SpecHandle.IsValid())
 			{
+				UWeaponComponent* WeaponComp = GetWeaponComponent();
+				if (WeaponComp)
+				{
+					float Duration = WeaponComp->GetCurrentWeaponData().ReloadTime;
+					if (WeaponAttributes->GetReloadSpeedMultiplier() > 0.0f)
+					{
+						Duration *= WeaponAttributes->GetReloadSpeedMultiplier();
+					}
+					SpecHandle.Data->SetDuration(Duration, true);
+				}
+
 				ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, SpecHandle);
 			}
 		}

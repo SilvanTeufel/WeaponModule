@@ -27,6 +27,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void ModifyAmmo(float Amount);
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	int32 GetProjectileCount() const;
+
 	virtual UGameplayEffect* GetCooldownGameplayEffect() const override;
 	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
 	virtual void GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& Duration) const override;

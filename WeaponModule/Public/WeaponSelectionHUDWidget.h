@@ -30,6 +30,9 @@ public:
 	TSubclassOf<class UWeaponHUDWidget> WeaponHUDWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
+	TSubclassOf<class UWeaponTalentWidget> WeaponTalentWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
 	int32 MaxDisplayedUnits = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
@@ -48,8 +51,20 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UPanelWidget* WeaponHUDContainer;
 
+	UPROPERTY(meta = (BindWidget))
+	class UPanelWidget* WeaponTalentContainer;
+
 	UPROPERTY()
 	TArray<UWeaponHUDWidget*> WeaponHUDWidgets;
+
+	UPROPERTY()
+	class UWeaponTalentWidget* TalentWidgetInstance;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
+	void ToggleTalentWidget(class AUnitBase* Unit);
+
+protected:
 
 	void CreateHUDWidgets();
 	void UpdateSelection();

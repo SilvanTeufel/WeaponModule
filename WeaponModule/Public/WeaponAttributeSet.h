@@ -55,6 +55,123 @@ public:
 	virtual void OnRep_AmountMagazines(const FGameplayAttributeData& OldAmountMagazines);
 	// AmountMagazines //
 
+	// WeaponTalentPoints //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_WeaponTalentPoints)
+	FGameplayAttributeData WeaponTalentPoints;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, WeaponTalentPoints);
+
+	UFUNCTION()
+	virtual void OnRep_WeaponTalentPoints(const FGameplayAttributeData& OldWeaponTalentPoints);
+	// WeaponTalentPoints //
+
+	// DamageMultiplier //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_DamageMultiplier)
+	FGameplayAttributeData DamageMultiplier;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, DamageMultiplier);
+
+	UFUNCTION()
+	virtual void OnRep_DamageMultiplier(const FGameplayAttributeData& OldDamageMultiplier);
+	// DamageMultiplier //
+
+	// CooldownMultiplier //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_CooldownMultiplier)
+	FGameplayAttributeData CooldownMultiplier;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, CooldownMultiplier);
+
+	UFUNCTION()
+	virtual void OnRep_CooldownMultiplier(const FGameplayAttributeData& OldCooldownMultiplier);
+	// CooldownMultiplier //
+
+	// PierceExtraCount //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_PierceExtraCount)
+	FGameplayAttributeData PierceExtraCount;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, PierceExtraCount);
+
+	UFUNCTION()
+	virtual void OnRep_PierceExtraCount(const FGameplayAttributeData& OldPierceExtraCount);
+	// PierceExtraCount //
+
+	// ProjectileExtraCount //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_ProjectileExtraCount)
+	FGameplayAttributeData ProjectileExtraCount;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, ProjectileExtraCount);
+
+	UFUNCTION()
+	virtual void OnRep_ProjectileExtraCount(const FGameplayAttributeData& OldProjectileExtraCount);
+	// ProjectileExtraCount //
+
+	// ReloadSpeedMultiplier //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_ReloadSpeedMultiplier)
+	FGameplayAttributeData ReloadSpeedMultiplier;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, ReloadSpeedMultiplier);
+
+	UFUNCTION()
+	virtual void OnRep_ReloadSpeedMultiplier(const FGameplayAttributeData& OldReloadSpeedMultiplier);
+	// ReloadSpeedMultiplier //
+
+	// DamageTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_DamageTalentLevel)
+	FGameplayAttributeData DamageTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, DamageTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_DamageTalentLevel(const FGameplayAttributeData& OldDamageTalentLevel);
+	// DamageTalentLevel //
+
+	// CooldownTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_CooldownTalentLevel)
+	FGameplayAttributeData CooldownTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, CooldownTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_CooldownTalentLevel(const FGameplayAttributeData& OldCooldownTalentLevel);
+	// CooldownTalentLevel //
+
+	// ReloadSpeedTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_ReloadSpeedTalentLevel)
+	FGameplayAttributeData ReloadSpeedTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, ReloadSpeedTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_ReloadSpeedTalentLevel(const FGameplayAttributeData& OldReloadSpeedTalentLevel);
+	// ReloadSpeedTalentLevel //
+
+	// PierceTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_PierceTalentLevel)
+	FGameplayAttributeData PierceTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, PierceTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_PierceTalentLevel(const FGameplayAttributeData& OldPierceTalentLevel);
+	// PierceTalentLevel //
+
+	// ProjectileTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_ProjectileTalentLevel)
+	FGameplayAttributeData ProjectileTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, ProjectileTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_ProjectileTalentLevel(const FGameplayAttributeData& OldProjectileTalentLevel);
+	// ProjectileTalentLevel //
+
+	// MaxAmmoTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MaxAmmoTalentLevel)
+	FGameplayAttributeData MaxAmmoTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, MaxAmmoTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_MaxAmmoTalentLevel(const FGameplayAttributeData& OldMaxAmmoTalentLevel);
+	// MaxAmmoTalentLevel //
+
+	// AmountMagazinesTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_AmountMagazinesTalentLevel)
+	FGameplayAttributeData AmountMagazinesTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, AmountMagazinesTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_AmountMagazinesTalentLevel(const FGameplayAttributeData& OldAmountMagazinesTalentLevel);
+	// AmountMagazinesTalentLevel //
+
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttributeAmmo(float NewValue);
 
@@ -63,4 +180,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttributeAmountMagazines(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeWeaponTalentPoints(float NewValue);
 };

@@ -31,8 +31,23 @@ bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileCl
 	{
 		if (AProjectile* ProjectileCDO = OutProjectileClass->GetDefaultObject<AProjectile>())
 		{
-			ProjectileCDO->Damage = OutWeaponData.BaseDamage;
-			UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Overwriting Projectile Damage with BaseDamage: %.2f"), OutWeaponData.BaseDamage);
+			UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
+			if (WeaponAttributes)
+			{
+				float FinalDamage = OutWeaponData.BaseDamage * WeaponAttributes->GetDamageMultiplier();
+				ProjectileCDO->Damage = FinalDamage;
+				
+				int32 FinalPierce = 1 + FMath::FloorToInt(WeaponAttributes->GetPierceExtraCount());
+				ProjectileCDO->MaxPiercedTargets = FinalPierce;
+
+				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Applied multipliers - Damage: %.2f (Base: %.2f), Pierce: %d"), 
+					FinalDamage, OutWeaponData.BaseDamage, FinalPierce);
+			}
+			else
+			{
+				ProjectileCDO->Damage = OutWeaponData.BaseDamage;
+				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Overwriting Projectile Damage with BaseDamage: %.2f"), OutWeaponData.BaseDamage);
+			}
 		}
 	}
 
@@ -56,6 +71,16 @@ void UShootAbility::ModifyAmmo(float Amount)
 	}
 }
 
+int32 UShootAbility::GetProjectileCount() const
+{
+	UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
+	if (WeaponAttributes)
+	{
+		return 1 + FMath::FloorToInt(WeaponAttributes->GetProjectileExtraCount());
+	}
+	return 1;
+}
+
 UGameplayEffect* UShootAbility::GetCooldownGameplayEffect() const
 {
 	return CooldownGameplayEffectClass ? CooldownGameplayEffectClass->GetDefaultObject<UGameplayEffect>() : nullptr;
@@ -74,6 +99,13 @@ void UShootAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const
 			if (WeaponComp)
 			{
 				float Duration = WeaponComp->GetCurrentWeaponData().CooldownTime;
+
+				UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
+				if (WeaponAttributes)
+				{
+					Duration *= WeaponAttributes->GetCooldownMultiplier();
+				}
+				
 				SpecHandle.Data->SetDuration(Duration, true);
 				
 				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Applying Cooldown. Weapon: %s, Duration: %.2fs"), 
@@ -112,6 +144,13 @@ void UShootAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHand
 	if (WeaponComp)
 	{
 		Duration = WeaponComp->GetCurrentWeaponData().CooldownTime;
+
+		UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
+		if (WeaponAttributes)
+		{
+			Duration *= WeaponAttributes->GetCooldownMultiplier();
+		}
+		
 		UE_LOG(LogTemp, Verbose, TEXT("[WeaponModule] ShootAbility: Querying Cooldown. Duration: %.2fs"), Duration);
 	}
 }
