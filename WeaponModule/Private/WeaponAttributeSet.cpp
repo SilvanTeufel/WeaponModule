@@ -2,6 +2,7 @@
 
 #include "WeaponAttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "GameplayEffectExtension.h"
 
 UWeaponAttributeSet::UWeaponAttributeSet()
 {
@@ -14,6 +15,26 @@ void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, Ammo, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, MaxAmmo, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, AmountMagazines, COND_None, REPNOTIFY_Always);
+}
+
+void UWeaponAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
+{
+	Super::PreAttributeChange(Attribute, NewValue);
+
+	if (Attribute == GetAmmoAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxAmmo());
+	}
+}
+
+void UWeaponAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+	Super::PostGameplayEffectExecute(Data);
+
+	if (Data.EvaluatedData.Attribute == GetAmmoAttribute())
+	{
+		SetAmmo(FMath::Clamp(GetAmmo(), 0.0f, GetMaxAmmo()));
+	}
 }
 
 void UWeaponAttributeSet::OnRep_Ammo(const FGameplayAttributeData& OldAmmo)

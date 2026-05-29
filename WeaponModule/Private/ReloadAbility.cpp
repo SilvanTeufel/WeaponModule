@@ -13,7 +13,7 @@ void UReloadAbility::PerformReload()
 {
 	UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
 
-	if (WeaponAttributes && WeaponAttributes->GetAmountMagazines() > 0)
+	if (WeaponAttributes && WeaponAttributes->GetAmountMagazines() > 0 && WeaponAttributes->GetAmmo() < WeaponAttributes->GetMaxAmmo())
 	{
 		UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ReloadAbility: Starting reload. Magazines left: %f"), WeaponAttributes->GetAmountMagazines());
 		if (ReloadEffectClass)
@@ -41,6 +41,10 @@ void UReloadAbility::PerformReload()
 		else if (WeaponAttributes->GetAmountMagazines() <= 0)
 		{
 			UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ReloadAbility: No magazines left!"));
+		}
+		else if (WeaponAttributes->GetAmmo() >= WeaponAttributes->GetMaxAmmo())
+		{
+			UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ReloadAbility: Ammo already full!"));
 		}
 	}
 }
