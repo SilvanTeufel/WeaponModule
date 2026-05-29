@@ -39,6 +39,12 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FGameplayTag WeaponTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FString WeaponName = "Unknown Weapon";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UTexture2D* WeaponIcon = nullptr;
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))

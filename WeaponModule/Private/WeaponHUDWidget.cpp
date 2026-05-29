@@ -2,11 +2,103 @@
 
 #include "WeaponHUDWidget.h"
 #include "WeaponAttributeSet.h"
+#include "WeaponComponent.h"
 #include "GAS/AttributeSetBase.h"
 #include "AbilitySystemComponent.h"
 #include "Hud/HUDBase.h"
 #include "Characters/Unit/UnitBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
+#include "Components/Image.h"
+
+void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
+{
+	if (!Unit)
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	SetVisibility(ESlateVisibility::Visible);
+
+	UAbilitySystemComponent* ASC = Unit->FindComponentByClass<UAbilitySystemComponent>();
+	if (ASC)
+	{
+		// Update Unit Attributes
+		const UAttributeSetBase* Attributes = ASC->GetSet<UAttributeSetBase>();
+		if (Attributes)
+		{
+			float Health = Attributes->GetHealth();
+			float MaxHealth = Attributes->GetMaxHealth();
+			float Shield = Attributes->GetShield();
+			float MaxShield = Attributes->GetMaxShield();
+			float Mana = Attributes->GetMana();
+			float MaxMana = Attributes->GetMaxMana();
+
+			if (HealthBar) HealthBar->SetPercent(MaxHealth > 0 ? Health / MaxHealth : 0);
+			if (HealthText) HealthText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Health, MaxHealth)));
+
+			if (ShieldBar)
+			{
+				ShieldBar->SetPercent(MaxShield > 0 ? Shield / MaxShield : 0);
+				ShieldBar->SetVisibility(MaxShield > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			}
+			if (ShieldText)
+			{
+				ShieldText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Shield, MaxShield)));
+				ShieldText->SetVisibility(MaxShield > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			}
+
+			if (ManaBar)
+			{
+				ManaBar->SetPercent(MaxMana > 0 ? Mana / MaxMana : 0);
+				ManaBar->SetVisibility(MaxMana > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			}
+			if (ManaText)
+			{
+				ManaText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Mana, MaxMana)));
+				ManaText->SetVisibility(MaxMana > 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			}
+		}
+
+		// Update Weapon Attributes
+		const UWeaponAttributeSet* WeaponAttributes = ASC->GetSet<UWeaponAttributeSet>();
+		if (WeaponAttributes)
+		{
+			float Ammo = WeaponAttributes->GetAmmo();
+			float MaxAmmo = WeaponAttributes->GetMaxAmmo();
+			float Magazines = WeaponAttributes->GetAmountMagazines();
+
+			if (AmmoBar) AmmoBar->SetPercent(MaxAmmo > 0 ? Ammo / MaxAmmo : 0);
+			if (AmmoText) AmmoText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Ammo, MaxAmmo)));
+			if (MagazinesText) MagazinesText->SetText(FText::AsNumber(Magazines));
+		}
+	}
+
+	// Update Unit Icon and Name
+	if (UnitIconImage && Unit->UnitIcon)
+	{
+		UnitIconImage->SetBrushFromTexture(Unit->UnitIcon);
+	}
+
+	if (UnitNameText)
+	{
+		UnitNameText->SetText(FText::FromString(Unit->Name));
+	}
+
+	// Update Current Weapon Info
+	UWeaponComponent* WeaponComp = Unit->FindComponentByClass<UWeaponComponent>();
+	if (WeaponComp)
+	{
+		FWeaponData CurrentWeapon = WeaponComp->GetCurrentWeaponData();
+		if (WeaponNameText) WeaponNameText->SetText(FText::FromString(CurrentWeapon.WeaponName));
+		if (WeaponIconImage && CurrentWeapon.WeaponIcon)
+		{
+			WeaponIconImage->SetBrushFromTexture(CurrentWeapon.WeaponIcon);
+		}
+	}
+}
 
 void UWeaponHUDWidget::GetWeaponAttributes(float& Ammo, float& MaxAmmo, float& Magazines)
 {

@@ -1,0 +1,58 @@
+// Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "WeaponHUDWidget.h"
+#include "Components/PanelWidget.h"
+#include "Layout/Margin.h"
+#include "WeaponSelectionHUDWidget.generated.h"
+
+class ACustomControllerBase;
+
+/**
+ * 
+ */
+UCLASS()
+class WEAPONMODULE_API UWeaponSelectionHUDWidget : public UUserWidget
+{
+	GENERATED_BODY()
+
+public:
+	virtual void NativeConstruct() override;
+	virtual void SynchronizeProperties() override;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
+	void InitWidget(ACustomControllerBase* InController);
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	TSubclassOf<class UWeaponHUDWidget> WeaponHUDWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	int32 MaxDisplayedUnits = 3;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	int32 MaxColumns = 3;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	FMargin WidgetPadding = FMargin(5.f);
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	float UpdateInterval = 0.1f;
+
+protected:
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|UI")
+	ACustomControllerBase* ControllerBase;
+
+	UPROPERTY(meta = (BindWidget))
+	class UPanelWidget* WeaponHUDContainer;
+
+	UPROPERTY()
+	TArray<UWeaponHUDWidget*> WeaponHUDWidgets;
+
+	void CreateHUDWidgets();
+	void UpdateSelection();
+
+	FTimerHandle UpdateTimerHandle;
+};
