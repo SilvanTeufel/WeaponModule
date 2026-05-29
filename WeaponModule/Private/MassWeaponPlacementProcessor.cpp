@@ -61,14 +61,18 @@ void UMassWeaponPlacementProcessor::Execute(FMassEntityManager& EntityManager, F
 				if (bVisible && !OwnerActor->IsHidden())
 				{
 					AUnitBase* Unit = Cast<AUnitBase>(OwnerActor);
+					FTransform ParentTransform;
 					if (Unit && Unit->bUseSkeletalMovement && Unit->GetMesh() && WeaponFrag.SocketName != NAME_None)
 					{
-						WeaponTransform = Unit->GetMesh()->GetSocketTransform(WeaponFrag.SocketName);
+						ParentTransform = Unit->GetMesh()->GetSocketTransform(WeaponFrag.SocketName);
 					}
 					else
 					{
-						WeaponTransform = OwnerActor->GetActorTransform();
+						ParentTransform = OwnerActor->GetActorTransform();
 					}
+
+					// Apply the offset: Offset * ParentTransform
+					WeaponTransform = WeaponFrag.Offset * ParentTransform;
 				}
 				else
 				{

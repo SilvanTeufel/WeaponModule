@@ -45,6 +45,9 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UTexture2D* WeaponIcon = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FTransform Offset = FTransform::Identity;
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -75,6 +78,20 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	FWeaponData GetCurrentWeaponData() const;
+
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(VisibleAnywhere, Category = "Preview")
+	TObjectPtr<UStaticMeshComponent> WeaponPreview;
+
+	UPROPERTY(EditAnywhere, Category = "Preview")
+	int32 PreviewWeaponIndex = 0;
+#endif
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void OnRegister() override;
+	void UpdatePreview();
+#endif
 
 	UPROPERTY()
 	class UWeaponAttributeSet* WeaponAttributes;

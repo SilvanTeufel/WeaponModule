@@ -5,11 +5,22 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "GameFramework/Actor.h"
 
 UWeaponComponent::UWeaponComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+
+#if WITH_EDITORONLY_DATA
+	WeaponPreview = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponPreview"));
+	WeaponPreview->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponPreview->bIsEditorOnly = true;
+	WeaponPreview->SetHiddenInGame(true);
+#endif
 }
 
 void UWeaponComponent::BeginPlay()
@@ -75,3 +86,68 @@ FWeaponData UWeaponComponent::GetCurrentWeaponData() const
 	}
 	return FWeaponData();
 }
+
+#if WITH_EDITOR
+void UWeaponComponent::OnRegister()
+{
+	Super::OnRegister();
+	UpdatePreview();
+}
+
+void UWeaponComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.MemberProperty)
+	{
+		const FName MemberName = PropertyChangedEvent.MemberProperty->GetFName();
+		
+		// Falls die Komponente im Viewport manuell verschoben wurde:
+		if (MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, WeaponPreview))
+		{
+			if (AvailableWeapons.IsValidIndex(PreviewWeaponIndex))
+			{
+				AvailableWeapons[PreviewWeaponIndex].Offset = WeaponPreview->GetRelativeTransform();
+			}
+		}
+
+		// Falls Einstellungen im Detail-Panel geändert wurden:
+		if (MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, PreviewWeaponIndex) || 
+			MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, AvailableWeapons))
+		{
+			UpdatePreview();
+		}
+	}
+}
+
+void UWeaponComponent::UpdatePreview()
+{
+	if (!WeaponPreview || !AvailableWeapons.IsValidIndex(PreviewWeaponIndex))
+	{
+		if (WeaponPreview)
+		{
+			WeaponPreview->SetStaticMesh(nullptr);
+		}
+		return;
+	}
+
+	const FWeaponData& Data = AvailableWeapons[PreviewWeaponIndex];
+	WeaponPreview->SetStaticMesh(Data.WeaponMesh);
+
+	if (AActor* Owner = GetOwner())
+	{
+		// Suche Mesh der Unit für den Socket-Attach
+		USkeletalMeshComponent* UnitMesh = Owner->FindComponentByClass<USkeletalMeshComponent>();
+		if (UnitMesh && Data.SocketName != NAME_None)
+		{
+			WeaponPreview->AttachToComponent(UnitMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, Data.SocketName);
+		}
+		else
+		{
+			WeaponPreview->AttachToComponent(Owner->GetRootComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
+		}
+	}
+
+	WeaponPreview->SetRelativeTransform(Data.Offset);
+}
+#endif

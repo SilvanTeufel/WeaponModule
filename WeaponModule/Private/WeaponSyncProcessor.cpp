@@ -56,6 +56,7 @@ void UWeaponSyncProcessor::Execute(FMassEntityManager& EntityManager, FMassExecu
 				FWeaponData WeaponData = WeaponComp->GetCurrentWeaponData();
 				VisualManager->AssignWeapon(ChunkContext.GetEntity(EntityIndex), WeaponData.WeaponMesh);
 				WeaponFrag.SocketName = WeaponData.SocketName;
+				WeaponFrag.Offset = WeaponData.Offset;
 			}
 		}
 	});

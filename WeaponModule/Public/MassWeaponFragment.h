@@ -23,4 +23,7 @@ struct WEAPONMODULE_API FMassWeaponFragment : public FMassFragment
 	
 	UPROPERTY(Transient)
 	FName SocketName = NAME_None;
+
+	UPROPERTY(Transient)
+	FTransform Offset = FTransform::Identity;
 };
