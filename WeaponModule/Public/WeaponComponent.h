@@ -35,6 +35,9 @@ struct FWeaponData
 	float AmountMagazines = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	float CooldownTime = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FGameplayTag WeaponTag;
 };
 
