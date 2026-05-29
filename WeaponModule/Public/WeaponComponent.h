@@ -112,6 +112,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	bool PurchaseUpgrade(FWeaponUpgrade Upgrade);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	int32 PointsPerLevel = 1;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = "Preview")
 	TObjectPtr<UStaticMeshComponent> WeaponPreview;

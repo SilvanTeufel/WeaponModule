@@ -27,3 +27,9 @@ struct WEAPONMODULE_API FMassWeaponFragment : public FMassFragment
 	UPROPERTY(Transient)
 	FTransform Offset = FTransform::Identity;
 };
+
+USTRUCT()
+struct WEAPONMODULE_API FMassXPProcessedTag : public FMassTag
+{
+	GENERATED_BODY()
+};
