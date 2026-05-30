@@ -33,6 +33,7 @@ void UWeaponComponent::BeginPlay()
 		for (FWeaponData& Weapon : AvailableWeapons)
 		{
 			Weapon.WeaponTalentPoints += StartTalentPoints;
+			Weapon.EffectTalentPoints += StartEffectTalentPoints;
 		}
 	}
 
@@ -102,6 +103,11 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 	WeaponAttributes->SetProjectileTalentLevel(Data.ProjectileTalentLevel);
 	WeaponAttributes->SetMaxAmmoTalentLevel(Data.MaxAmmoTalentLevel);
 	WeaponAttributes->SetAmountMagazinesTalentLevel(Data.AmountMagazinesTalentLevel);
+
+	WeaponAttributes->SetAttributeEffectTalentPoints(Data.EffectTalentPoints);
+	WeaponAttributes->SetAttributeSelectedEffectIndex(Data.SelectedEffectIndex1);
+	WeaponAttributes->SetAttributeSelectedEffectIndex2(Data.SelectedEffectIndex2);
+	WeaponAttributes->SetAttributeSelectedEffectIndex3(Data.SelectedEffectIndex3);
 }
 
 void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
@@ -126,6 +132,11 @@ void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
 	Data.ProjectileTalentLevel = WeaponAttributes->GetProjectileTalentLevel();
 	Data.MaxAmmoTalentLevel = WeaponAttributes->GetMaxAmmoTalentLevel();
 	Data.AmountMagazinesTalentLevel = WeaponAttributes->GetAmountMagazinesTalentLevel();
+
+	Data.EffectTalentPoints = WeaponAttributes->GetEffectTalentPoints();
+	Data.SelectedEffectIndex1 = WeaponAttributes->GetSelectedEffectIndex();
+	Data.SelectedEffectIndex2 = WeaponAttributes->GetSelectedEffectIndex2();
+	Data.SelectedEffectIndex3 = WeaponAttributes->GetSelectedEffectIndex3();
 }
 
 FWeaponData UWeaponComponent::GetCurrentWeaponData() const
@@ -139,7 +150,11 @@ FWeaponData UWeaponComponent::GetCurrentWeaponData() const
 
 bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 {
-	if (!WeaponAttributes || WeaponAttributes->GetWeaponTalentPoints() < Upgrade.Cost)
+	if (!WeaponAttributes) return false;
+
+	float AvailablePoints = WeaponAttributes->GetWeaponTalentPoints();
+
+	if (AvailablePoints < Upgrade.Cost)
 	{
 		return false;
 	}
@@ -151,7 +166,7 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 	}
 
 	// Punkte abziehen
-	WeaponAttributes->SetAttributeWeaponTalentPoints(WeaponAttributes->GetWeaponTalentPoints() - Upgrade.Cost);
+	WeaponAttributes->SetAttributeWeaponTalentPoints(AvailablePoints - Upgrade.Cost);
 
     // Increment Level Attribute (Raw points invested)
     float NewLevel = 0.0f;
@@ -231,6 +246,35 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 	return true;
 }
 
+void UWeaponComponent::Server_SelectEffectTalent_Implementation(int32 Index)
+{
+	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return;
+	FWeaponData& Data = AvailableWeapons[CurrentWeaponIndex];
+
+	if (!Data.EffectTalents.IsValidIndex(Index)) return;
+
+	// Check if already selected
+	if (Data.SelectedEffectIndex1 == Index || Data.SelectedEffectIndex2 == Index || Data.SelectedEffectIndex3 == Index) return;
+
+	float Cost = (float)Index + 1.0f;
+	float AvailablePoints = WeaponAttributes->GetEffectTalentPoints();
+
+	if (AvailablePoints >= Cost)
+	{
+		// 1. Update Attributes first
+		WeaponAttributes->SetAttributeEffectTalentPoints(AvailablePoints - Cost);
+		
+		if (Data.SelectedEffectIndex1 == -1) WeaponAttributes->SetAttributeSelectedEffectIndex((float)Index);
+		else if (Data.SelectedEffectIndex2 == -1) WeaponAttributes->SetAttributeSelectedEffectIndex2((float)Index);
+		else if (Data.SelectedEffectIndex3 == -1) WeaponAttributes->SetAttributeSelectedEffectIndex3((float)Index);
+
+		// 2. Save Attributes back to Data struct
+		SaveAttributesToWeapon(CurrentWeaponIndex);
+		
+		UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Selected Effect Talent %d. Cost: %.1f"), Index, Cost);
+	}
+}
+
 void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 {
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return;
@@ -238,6 +282,7 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	UAbilitySystemComponent* ASC = GetOwner()->FindComponentByClass<UAbilitySystemComponent>();
 	if (!ASC) return;
 
+	// --- 1. Reset Normal Talents ---
 	float InvestedPoints = 0.0f;
 	InvestedPoints += WeaponAttributes->GetDamageTalentLevel();
 	InvestedPoints += WeaponAttributes->GetCooldownTalentLevel();
@@ -247,7 +292,11 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	InvestedPoints += WeaponAttributes->GetMaxAmmoTalentLevel();
 	InvestedPoints += WeaponAttributes->GetAmountMagazinesTalentLevel();
 
-	// Reset Multipliers / Extra Counts to default values
+	// Refund normal points
+	float CurrentPoints = WeaponAttributes->GetWeaponTalentPoints();
+	WeaponAttributes->SetAttributeWeaponTalentPoints(CurrentPoints + InvestedPoints);
+
+	// Reset Normal Multipliers / Extra Counts to default values
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetDamageMultiplierAttribute(), 1.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetCooldownMultiplierAttribute(), 1.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetReloadSpeedMultiplierAttribute(), 1.0f);
@@ -260,7 +309,7 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute(), Data.AmountMagazines);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetMaxMagazinesAttribute(), Data.MaxMagazines);
 
-	// Reset Levels to zero
+	// Reset Normal Levels to zero
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetDamageTalentLevelAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetCooldownTalentLevelAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetReloadSpeedTalentLevelAttribute(), 0.0f);
@@ -269,13 +318,28 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetMaxAmmoTalentLevelAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesTalentLevelAttribute(), 0.0f);
 
-	// Refund points to the weapon's talent pool
-	float CurrentPoints = WeaponAttributes->GetWeaponTalentPoints();
-	WeaponAttributes->SetAttributeWeaponTalentPoints(CurrentPoints + InvestedPoints);
+	// --- 2. Reset Effect Talents ---
+	float RefundPoints = 0.0f;
+	int32 Idx1 = FMath::FloorToInt(WeaponAttributes->GetSelectedEffectIndex());
+	int32 Idx2 = FMath::FloorToInt(WeaponAttributes->GetSelectedEffectIndex2());
+	int32 Idx3 = FMath::FloorToInt(WeaponAttributes->GetSelectedEffectIndex3());
+	
+	if (Idx1 != -1) RefundPoints += (float)Idx1 + 1.0f;
+	if (Idx2 != -1) RefundPoints += (float)Idx2 + 1.0f;
+	if (Idx3 != -1) RefundPoints += (float)Idx3 + 1.0f;
+
+	if (RefundPoints > 0.0f)
+	{
+		float CurrentEffectPoints = WeaponAttributes->GetEffectTalentPoints();
+		WeaponAttributes->SetAttributeEffectTalentPoints(CurrentEffectPoints + RefundPoints);
+		WeaponAttributes->SetAttributeSelectedEffectIndex(-1.0f);
+		WeaponAttributes->SetAttributeSelectedEffectIndex2(-1.0f);
+		WeaponAttributes->SetAttributeSelectedEffectIndex3(-1.0f);
+	}
 
 	SaveAttributesToWeapon(CurrentWeaponIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Reset talents for current weapon. Refunded %.1f points."), InvestedPoints);
+	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Reset talents for current weapon. Refunded %.1f normal points."), InvestedPoints);
 }
 
 #if WITH_EDITOR

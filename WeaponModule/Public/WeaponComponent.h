@@ -101,6 +101,21 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float AmountMagazinesTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float EffectTalentPoints = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	TArray<TSubclassOf<UGameplayEffect>> EffectTalents;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	int32 SelectedEffectIndex1 = -1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	int32 SelectedEffectIndex2 = -1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	int32 SelectedEffectIndex3 = -1;
 };
 
 USTRUCT(BlueprintType)
@@ -163,6 +178,9 @@ public:
 	bool PurchaseUpgrade(FWeaponUpgrade Upgrade);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
+	void Server_SelectEffectTalent(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
 	void Server_ResetCurrentWeaponTalents();
 
 	void SyncAttributesFromWeapon(int32 Index);
@@ -173,6 +191,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	float StartTalentPoints = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float StartEffectTalentPoints = 0.0f;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = "Preview")

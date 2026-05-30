@@ -19,6 +19,10 @@ UWeaponAttributeSet::UWeaponAttributeSet()
 	InitProjectileTalentLevel(0.0f);
 	InitMaxAmmoTalentLevel(0.0f);
 	InitAmountMagazinesTalentLevel(0.0f);
+	InitEffectTalentPoints(0.0f);
+	InitSelectedEffectIndex(-1.0f);
+	InitSelectedEffectIndex2(-1.0f);
+	InitSelectedEffectIndex3(-1.0f);
 }
 
 void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -42,6 +46,10 @@ void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, ProjectileTalentLevel, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, MaxAmmoTalentLevel, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, AmountMagazinesTalentLevel, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, EffectTalentPoints, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectIndex, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectIndex2, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectIndex3, COND_None, REPNOTIFY_Always);
 }
 
 void UWeaponAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -157,6 +165,26 @@ void UWeaponAttributeSet::OnRep_AmountMagazinesTalentLevel(const FGameplayAttrib
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, AmountMagazinesTalentLevel, OldAmountMagazinesTalentLevel);
 }
 
+void UWeaponAttributeSet::OnRep_EffectTalentPoints(const FGameplayAttributeData& OldEffectTalentPoints)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, EffectTalentPoints, OldEffectTalentPoints);
+}
+
+void UWeaponAttributeSet::OnRep_SelectedEffectIndex(const FGameplayAttributeData& OldSelectedEffectIndex)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, SelectedEffectIndex, OldSelectedEffectIndex);
+}
+
+void UWeaponAttributeSet::OnRep_SelectedEffectIndex2(const FGameplayAttributeData& OldSelectedEffectIndex2)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, SelectedEffectIndex2, OldSelectedEffectIndex2);
+}
+
+void UWeaponAttributeSet::OnRep_SelectedEffectIndex3(const FGameplayAttributeData& OldSelectedEffectIndex3)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, SelectedEffectIndex3, OldSelectedEffectIndex3);
+}
+
 void UWeaponAttributeSet::SetAttributeAmmo(float NewValue)
 {
 	SetAmmo(NewValue);
@@ -180,4 +208,24 @@ void UWeaponAttributeSet::SetAttributeMaxMagazines(float NewValue)
 void UWeaponAttributeSet::SetAttributeWeaponTalentPoints(float NewValue)
 {
 	SetWeaponTalentPoints(NewValue);
+}
+
+void UWeaponAttributeSet::SetAttributeEffectTalentPoints(float NewValue)
+{
+	SetEffectTalentPoints(NewValue);
+}
+
+void UWeaponAttributeSet::SetAttributeSelectedEffectIndex(float NewValue)
+{
+	SetSelectedEffectIndex(NewValue);
+}
+
+void UWeaponAttributeSet::SetAttributeSelectedEffectIndex2(float NewValue)
+{
+	SetSelectedEffectIndex2(NewValue);
+}
+
+void UWeaponAttributeSet::SetAttributeSelectedEffectIndex3(float NewValue)
+{
+	SetSelectedEffectIndex3(NewValue);
 }

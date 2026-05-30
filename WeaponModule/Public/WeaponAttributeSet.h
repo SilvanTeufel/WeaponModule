@@ -195,4 +195,52 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttributeWeaponTalentPoints(float NewValue);
+
+	// EffectTalentPoints //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_EffectTalentPoints)
+	FGameplayAttributeData EffectTalentPoints;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, EffectTalentPoints);
+
+	UFUNCTION()
+	virtual void OnRep_EffectTalentPoints(const FGameplayAttributeData& OldEffectTalentPoints);
+	// EffectTalentPoints //
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeEffectTalentPoints(float NewValue);
+
+	// SelectedEffectIndex //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_SelectedEffectIndex)
+	FGameplayAttributeData SelectedEffectIndex;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, SelectedEffectIndex);
+
+	UFUNCTION()
+	virtual void OnRep_SelectedEffectIndex(const FGameplayAttributeData& OldSelectedEffectIndex);
+	// SelectedEffectIndex //
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeSelectedEffectIndex(float NewValue);
+
+	// SelectedEffectIndex2 //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_SelectedEffectIndex2)
+	FGameplayAttributeData SelectedEffectIndex2;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, SelectedEffectIndex2);
+
+	UFUNCTION()
+	virtual void OnRep_SelectedEffectIndex2(const FGameplayAttributeData& OldSelectedEffectIndex2);
+	// SelectedEffectIndex2 //
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeSelectedEffectIndex2(float NewValue);
+
+	// SelectedEffectIndex3 //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_SelectedEffectIndex3)
+	FGameplayAttributeData SelectedEffectIndex3;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, SelectedEffectIndex3);
+
+	UFUNCTION()
+	virtual void OnRep_SelectedEffectIndex3(const FGameplayAttributeData& OldSelectedEffectIndex3);
+	// SelectedEffectIndex3 //
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeSelectedEffectIndex3(float NewValue);
 };

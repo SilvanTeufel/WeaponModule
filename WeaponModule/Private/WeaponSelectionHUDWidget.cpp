@@ -2,6 +2,7 @@
 
 #include "WeaponSelectionHUDWidget.h"
 #include "WeaponTalentWidget.h"
+#include "WeaponEffectTalentWidget.h"
 #include "Hud/HUDBase.h"
 #include "Characters/Unit/UnitBase.h"
 #include "WeaponComponent.h"
@@ -75,6 +76,15 @@ void UWeaponSelectionHUDWidget::CreateHUDWidgets()
 				WeaponTalentContainer->AddChild(PreviewWidget);
 			}
 		}
+
+		if (IsDesignTime() && WeaponEffectTalentContainer && WeaponEffectTalentWidgetClass)
+		{
+			WeaponEffectTalentContainer->ClearChildren();
+			if (UWeaponEffectTalentWidget* PreviewWidget = CreateWidget<UWeaponEffectTalentWidget>(this, WeaponEffectTalentWidgetClass))
+			{
+				WeaponEffectTalentContainer->AddChild(PreviewWidget);
+			}
+		}
 	}
 }
 
@@ -105,6 +115,36 @@ void UWeaponSelectionHUDWidget::ToggleTalentWidget(AUnitBase* Unit)
 	{
 		TalentWidgetInstance->SetTargetUnit(Unit);
 		TalentWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void UWeaponSelectionHUDWidget::ToggleEffectTalentWidget(AUnitBase* Unit)
+{
+	if (!WeaponEffectTalentContainer || !WeaponEffectTalentWidgetClass) return;
+
+	// Wenn das Widget bereits existiert und die gleiche Unit anzeigt, dann toggeln wir es weg (Collapsed)
+	if (EffectTalentWidgetInstance)
+	{
+		if (EffectTalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible && EffectTalentWidgetInstance->GetTargetUnit() == Unit)
+		{
+			EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+			return;
+		}
+	}
+	else
+	{
+		// Erstellen, falls noch nicht vorhanden
+		EffectTalentWidgetInstance = CreateWidget<UWeaponEffectTalentWidget>(this, WeaponEffectTalentWidgetClass);
+		if (EffectTalentWidgetInstance)
+		{
+			WeaponEffectTalentContainer->AddChild(EffectTalentWidgetInstance);
+		}
+	}
+
+	if (EffectTalentWidgetInstance)
+	{
+		EffectTalentWidgetInstance->SetTargetUnit(Unit);
+		EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
@@ -165,6 +205,25 @@ void UWeaponSelectionHUDWidget::UpdateSelection()
 		else
 		{
 			TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// Update Effect Talent Widget if visible
+	if (EffectTalentWidgetInstance && EffectTalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		if (SelectedUnitsWithWeapons.Num() > 0)
+		{
+			if (SelectedUnitsWithWeapons.Num() == 1 || !SelectedUnitsWithWeapons.Contains(EffectTalentWidgetInstance->GetTargetUnit()))
+			{
+				if (EffectTalentWidgetInstance->GetTargetUnit() != SelectedUnitsWithWeapons[0])
+				{
+					EffectTalentWidgetInstance->SetTargetUnit(SelectedUnitsWithWeapons[0]);
+				}
+			}
+		}
+		else
+		{
+			EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }

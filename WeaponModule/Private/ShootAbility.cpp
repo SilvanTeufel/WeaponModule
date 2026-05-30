@@ -12,7 +12,7 @@ UShootAbility::UShootAbility()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
-bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData, float& OutExtraDamage, int32& OutMaxPiercedTargets)
+bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData, float& OutExtraDamage, int32& OutMaxPiercedTargets, TSubclassOf<class UGameplayEffect>& OutSelectedEffect, TSubclassOf<class UGameplayEffect>& OutSelectedEffect2, TSubclassOf<class UGameplayEffect>& OutSelectedEffect3)
 {
 	UWeaponComponent* WeaponComp = GetWeaponComponent();
 	if (!WeaponComp)
@@ -25,12 +25,31 @@ bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileCl
 	OutProjectileClass = OutWeaponData.ProjectileClass;
 	OutExtraDamage = 0.f;
 	OutMaxPiercedTargets = 1;
+	OutSelectedEffect = nullptr;
+	OutSelectedEffect2 = nullptr;
+	OutSelectedEffect3 = nullptr;
+
+	UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
+	if (WeaponAttributes)
+	{
+		int32 Index1 = FMath::FloorToInt(WeaponAttributes->GetSelectedEffectIndex());
+		int32 Index2 = FMath::FloorToInt(WeaponAttributes->GetSelectedEffectIndex2());
+		int32 Index3 = FMath::FloorToInt(WeaponAttributes->GetSelectedEffectIndex3());
+
+		if (Index1 != -1 && OutWeaponData.EffectTalents.IsValidIndex(Index1))
+			OutSelectedEffect = OutWeaponData.EffectTalents[Index1];
+
+		if (Index2 != -1 && OutWeaponData.EffectTalents.IsValidIndex(Index2))
+			OutSelectedEffect2 = OutWeaponData.EffectTalents[Index2];
+
+		if (Index3 != -1 && OutWeaponData.EffectTalents.IsValidIndex(Index3))
+			OutSelectedEffect3 = OutWeaponData.EffectTalents[Index3];
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: GetShootInfo for WeaponTag: %s, Projectile: %s"), 
 		*OutWeaponData.WeaponTag.ToString(), OutProjectileClass ? *OutProjectileClass->GetName() : TEXT("NULL"));
 
 	float CalculatedDamage = OutWeaponData.BaseDamage;
-	UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
 	if (WeaponAttributes)
 	{
 		CalculatedDamage = OutWeaponData.BaseDamage * WeaponAttributes->GetDamageMultiplier();

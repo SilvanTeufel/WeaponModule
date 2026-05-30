@@ -30,11 +30,17 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* ToggleTalentButton;
 
+	UPROPERTY(meta = (BindWidget))
+	class UButton* ToggleEffectTalentButton;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon|UI")
 	class AUnitBase* CurrentUnit;
 
 	UFUNCTION()
 	void OnToggleTalentClicked();
+
+	UFUNCTION()
+	void OnToggleEffectTalentClicked();
 
 	// Health
 	UPROPERTY(meta = (BindWidget))

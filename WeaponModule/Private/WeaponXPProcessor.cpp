@@ -101,6 +101,11 @@ void UWeaponXPProcessor::Execute(FMassEntityManager& EntityManager, FMassExecuti
  									for (FWeaponData& Weapon : WeaponComp->AvailableWeapons)
  									{
  										Weapon.WeaponTalentPoints += WeaponComp->PointsPerLevel;
+
+										if (LevelUnit->LevelData.CharacterLevel % 5 == 0)
+										{
+											Weapon.EffectTalentPoints += 1.0f;
+										}
  									}
 									
  									// Attribute für die aktuell ausgerüstete Waffe synchronisieren

@@ -19,7 +19,7 @@ public:
 	UShootAbility();
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	bool GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData, float& OutExtraDamage, int32& OutMaxPiercedTargets);
+	bool GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData, float& OutExtraDamage, int32& OutMaxPiercedTargets, TSubclassOf<class UGameplayEffect>& OutSelectedEffect, TSubclassOf<class UGameplayEffect>& OutSelectedEffect2, TSubclassOf<class UGameplayEffect>& OutSelectedEffect3);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void ApplyGlobalCooldown();
