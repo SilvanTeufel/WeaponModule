@@ -19,6 +19,7 @@ void UWeaponTalentWidget::NativeConstruct()
 	if (UpgradeProjectileButton) UpgradeProjectileButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeProjectileClicked);
 	if (UpgradeAmmoButton) UpgradeAmmoButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeAmmoClicked);
 	if (UpgradeMagazinesButton) UpgradeMagazinesButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeMagazinesClicked);
+	if (ResetButton) ResetButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnResetClicked);
 }
 
 void UWeaponTalentWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -127,6 +128,14 @@ void UWeaponTalentWidget::OnUpgradeMagazinesClicked()
 	Upgrade.ModifierValue = 1.0f;
 	Upgrade.ModifierOp = EGameplayModOp::Additive;
 	BuyUpgrade(Upgrade);
+}
+
+void UWeaponTalentWidget::OnResetClicked()
+{
+	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	{
+		WeaponComp->Server_ResetCurrentWeaponTalents();
+	}
 }
 
 float UWeaponTalentWidget::GetTalentPoints() const

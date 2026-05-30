@@ -156,6 +156,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	bool PurchaseUpgrade(FWeaponUpgrade Upgrade);
 
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
+	void Server_ResetCurrentWeaponTalents();
+
 	void SyncAttributesFromWeapon(int32 Index);
 	void SaveAttributesToWeapon(int32 Index);
 

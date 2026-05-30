@@ -178,6 +178,52 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 	return true;
 }
 
+void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
+{
+	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return;
+
+	UAbilitySystemComponent* ASC = GetOwner()->FindComponentByClass<UAbilitySystemComponent>();
+	if (!ASC) return;
+
+	float InvestedPoints = 0.0f;
+	InvestedPoints += WeaponAttributes->GetDamageTalentLevel();
+	InvestedPoints += WeaponAttributes->GetCooldownTalentLevel();
+	InvestedPoints += WeaponAttributes->GetReloadSpeedTalentLevel();
+	InvestedPoints += WeaponAttributes->GetPierceTalentLevel();
+	InvestedPoints += WeaponAttributes->GetProjectileTalentLevel();
+	InvestedPoints += WeaponAttributes->GetMaxAmmoTalentLevel();
+	InvestedPoints += WeaponAttributes->GetAmountMagazinesTalentLevel();
+
+	// Reset Multipliers / Extra Counts to default values
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetDamageMultiplierAttribute(), 1.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetCooldownMultiplierAttribute(), 1.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetReloadSpeedMultiplierAttribute(), 1.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetPierceExtraCountAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetProjectileExtraCountAttribute(), 0.0f);
+
+	// Reset Ammo attributes to weapon base values
+	FWeaponData& Data = AvailableWeapons[CurrentWeaponIndex];
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetMaxAmmoAttribute(), Data.MaxAmmo);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute(), Data.AmountMagazines);
+
+	// Reset Levels to zero
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetDamageTalentLevelAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetCooldownTalentLevelAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetReloadSpeedTalentLevelAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetPierceTalentLevelAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetProjectileTalentLevelAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetMaxAmmoTalentLevelAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesTalentLevelAttribute(), 0.0f);
+
+	// Refund points to the weapon's talent pool
+	float CurrentPoints = WeaponAttributes->GetWeaponTalentPoints();
+	WeaponAttributes->SetAttributeWeaponTalentPoints(CurrentPoints + InvestedPoints);
+
+	SaveAttributesToWeapon(CurrentWeaponIndex);
+
+	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Reset talents for current weapon. Refunded %.1f points."), InvestedPoints);
+}
+
 #if WITH_EDITOR
 void UWeaponComponent::OnRegister()
 {

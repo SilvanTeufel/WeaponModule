@@ -66,6 +66,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* UpgradeMagazinesButton;
 
+	UPROPERTY(meta = (BindWidget))
+	class UButton* ResetButton;
+
 	// --- Level Display ---
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* DamageLevelText;
@@ -109,4 +112,7 @@ protected:
 
 	UFUNCTION()
 	void OnUpgradeMagazinesClicked();
+
+	UFUNCTION()
+	void OnResetClicked();
 };
