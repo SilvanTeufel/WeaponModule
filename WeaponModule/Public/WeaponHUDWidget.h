@@ -61,6 +61,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* UnitNameText;
 
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* CharacterLevelText;
+
 	// Weapon Info
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* WeaponNameText;

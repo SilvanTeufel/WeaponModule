@@ -28,6 +28,7 @@ void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, Ammo, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, MaxAmmo, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, AmountMagazines, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, MaxMagazines, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, WeaponTalentPoints, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, DamageMultiplier, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, CooldownMultiplier, COND_None, REPNOTIFY_Always);
@@ -51,6 +52,10 @@ void UWeaponAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 	{
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxAmmo());
 	}
+	else if (Attribute == GetAmountMagazinesAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxMagazines());
+	}
 }
 
 void UWeaponAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -60,6 +65,10 @@ void UWeaponAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	if (Data.EvaluatedData.Attribute == GetAmmoAttribute())
 	{
 		SetAmmo(FMath::Clamp(GetAmmo(), 0.0f, GetMaxAmmo()));
+	}
+	else if (Data.EvaluatedData.Attribute == GetAmountMagazinesAttribute())
+	{
+		SetAmountMagazines(FMath::Clamp(GetAmountMagazines(), 0.0f, GetMaxMagazines()));
 	}
 }
 
@@ -76,6 +85,11 @@ void UWeaponAttributeSet::OnRep_MaxAmmo(const FGameplayAttributeData& OldMaxAmmo
 void UWeaponAttributeSet::OnRep_AmountMagazines(const FGameplayAttributeData& OldAmountMagazines)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, AmountMagazines, OldAmountMagazines);
+}
+
+void UWeaponAttributeSet::OnRep_MaxMagazines(const FGameplayAttributeData& OldMaxMagazines)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, MaxMagazines, OldMaxMagazines);
 }
 
 void UWeaponAttributeSet::OnRep_WeaponTalentPoints(const FGameplayAttributeData& OldWeaponTalentPoints)
@@ -156,6 +170,11 @@ void UWeaponAttributeSet::SetAttributeMaxAmmo(float NewValue)
 void UWeaponAttributeSet::SetAttributeAmountMagazines(float NewValue)
 {
 	SetAmountMagazines(NewValue);
+}
+
+void UWeaponAttributeSet::SetAttributeMaxMagazines(float NewValue)
+{
+	SetMaxMagazines(NewValue);
 }
 
 void UWeaponAttributeSet::SetAttributeWeaponTalentPoints(float NewValue)

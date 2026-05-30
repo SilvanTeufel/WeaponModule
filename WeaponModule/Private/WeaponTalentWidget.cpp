@@ -123,7 +123,7 @@ void UWeaponTalentWidget::OnUpgradeMagazinesClicked()
 {
 	FWeaponUpgrade Upgrade;
 	Upgrade.Name = FText::FromString("Magazines");
-	Upgrade.Attribute = UWeaponAttributeSet::GetAmountMagazinesAttribute();
+	Upgrade.Attribute = UWeaponAttributeSet::GetMaxMagazinesAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetAmountMagazinesTalentLevelAttribute();
 	Upgrade.ModifierValue = 1.0f;
 	Upgrade.ModifierOp = EGameplayModOp::Additive;

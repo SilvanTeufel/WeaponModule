@@ -77,6 +77,7 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 
 	WeaponAttributes->SetAttributeMaxAmmo(Data.MaxAmmo);
 	WeaponAttributes->SetAttributeAmmo(Data.Ammo > 0 ? Data.Ammo : Data.MaxAmmo);
+	WeaponAttributes->SetAttributeMaxMagazines(Data.MaxMagazinesSpec > 0 ? Data.MaxMagazinesSpec : Data.MaxMagazines);
 	WeaponAttributes->SetAttributeAmountMagazines(Data.AmountMagazines);
 	
 	WeaponAttributes->SetAttributeWeaponTalentPoints(Data.WeaponTalentPoints);
@@ -101,6 +102,8 @@ void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
 	FWeaponData& Data = AvailableWeapons[Index];
 
 	Data.Ammo = WeaponAttributes->GetAmmo();
+	Data.AmountMagazines = WeaponAttributes->GetAmountMagazines();
+	Data.MaxMagazinesSpec = WeaponAttributes->GetMaxMagazines();
 	Data.WeaponTalentPoints = WeaponAttributes->GetWeaponTalentPoints();
 	Data.DamageMultiplier = WeaponAttributes->GetDamageMultiplier();
 	Data.CooldownMultiplier = WeaponAttributes->GetCooldownMultiplier();
@@ -162,6 +165,12 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 	}
 
 	ASC->SetNumericAttributeBase(Upgrade.Attribute, NewBase);
+
+	if (Upgrade.Attribute == UWeaponAttributeSet::GetMaxMagazinesAttribute() && Upgrade.ModifierOp == EGameplayModOp::Additive)
+	{
+		float CurrentAmount = ASC->GetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute());
+		ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute(), CurrentAmount + Upgrade.ModifierValue);
+	}
 	
 	// Increment Level Attribute if valid
 	if (Upgrade.LevelAttribute.IsValid())
@@ -205,6 +214,7 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	FWeaponData& Data = AvailableWeapons[CurrentWeaponIndex];
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetMaxAmmoAttribute(), Data.MaxAmmo);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute(), Data.AmountMagazines);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetMaxMagazinesAttribute(), Data.MaxMagazines);
 
 	// Reset Levels to zero
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetDamageTalentLevelAttribute(), 0.0f);

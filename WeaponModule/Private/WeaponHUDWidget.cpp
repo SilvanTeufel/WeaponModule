@@ -82,10 +82,11 @@ void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
 			float Ammo = WeaponAttributes->GetAmmo();
 			float MaxAmmo = WeaponAttributes->GetMaxAmmo();
 			float Magazines = WeaponAttributes->GetAmountMagazines();
+			float MaxMagazines = WeaponAttributes->GetMaxMagazines();
 
 			if (AmmoBar) AmmoBar->SetPercent(MaxAmmo > 0 ? Ammo / MaxAmmo : 0);
 			if (AmmoText) AmmoText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Ammo, MaxAmmo)));
-			if (MagazinesText) MagazinesText->SetText(FText::AsNumber(Magazines));
+			if (MagazinesText) MagazinesText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), Magazines, MaxMagazines)));
 		}
 	}
 
@@ -98,6 +99,11 @@ void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
 	if (UnitNameText)
 	{
 		UnitNameText->SetText(FText::FromString(Unit->Name));
+	}
+
+	if (CharacterLevelText)
+	{
+		CharacterLevelText->SetText(FText::FromString(FString::Printf(TEXT("Level: %d"), Unit->LevelData.CharacterLevel)));
 	}
 
 	// Update Current Weapon Info

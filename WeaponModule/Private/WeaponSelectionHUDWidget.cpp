@@ -146,4 +146,25 @@ void UWeaponSelectionHUDWidget::UpdateSelection()
 			WeaponHUDWidgets[i]->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
+
+	// Update Talent Widget if visible
+	if (TalentWidgetInstance && TalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		if (SelectedUnitsWithWeapons.Num() > 0)
+		{
+			// If the current target unit is no longer in selection, or if it's a single re-selection,
+			// update to the first selected unit with a weapon.
+			if (SelectedUnitsWithWeapons.Num() == 1 || !SelectedUnitsWithWeapons.Contains(TalentWidgetInstance->GetTargetUnit()))
+			{
+				if (TalentWidgetInstance->GetTargetUnit() != SelectedUnitsWithWeapons[0])
+				{
+					TalentWidgetInstance->SetTargetUnit(SelectedUnitsWithWeapons[0]);
+				}
+			}
+		}
+		else
+		{
+			TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }

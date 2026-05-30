@@ -55,6 +55,15 @@ public:
 	virtual void OnRep_AmountMagazines(const FGameplayAttributeData& OldAmountMagazines);
 	// AmountMagazines //
 
+	// MaxMagazines //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MaxMagazines)
+	FGameplayAttributeData MaxMagazines;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, MaxMagazines);
+
+	UFUNCTION()
+	virtual void OnRep_MaxMagazines(const FGameplayAttributeData& OldMaxMagazines);
+	// MaxMagazines //
+
 	// WeaponTalentPoints //
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_WeaponTalentPoints)
 	FGameplayAttributeData WeaponTalentPoints;
@@ -180,6 +189,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttributeAmountMagazines(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeMaxMagazines(float NewValue);
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttributeWeaponTalentPoints(float NewValue);

@@ -35,6 +35,9 @@ struct FWeaponData
 	float AmountMagazines = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	float MaxMagazines = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	float CooldownTime = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
@@ -73,6 +76,9 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float ProjectileExtraCount = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float MaxMagazinesSpec = 0.0f;
 
 	// Talent Levels
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
