@@ -30,7 +30,11 @@ void UReloadAbility::PerformReload()
 					{
 						Duration *= WeaponAttributes->GetReloadSpeedMultiplier();
 					}
-					SpecHandle.Data->SetDuration(Duration, true);
+
+					if (SpecHandle.Data->Def && SpecHandle.Data->Def->DurationPolicy != EGameplayEffectDurationType::Instant)
+					{
+						SpecHandle.Data->SetDuration(Duration, true);
+					}
 				}
 
 				ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, SpecHandle);

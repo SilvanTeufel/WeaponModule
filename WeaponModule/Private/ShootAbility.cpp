@@ -106,7 +106,10 @@ void UShootAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const
 					Duration *= WeaponAttributes->GetCooldownMultiplier();
 				}
 				
-				SpecHandle.Data->SetDuration(Duration, true);
+				if (SpecHandle.Data->Def && SpecHandle.Data->Def->DurationPolicy != EGameplayEffectDurationType::Instant)
+				{
+					SpecHandle.Data->SetDuration(Duration, true);
+				}
 				
 				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Applying Cooldown. Weapon: %s, Duration: %.2fs"), 
 					*WeaponComp->GetCurrentWeaponData().WeaponTag.ToString(), Duration);
