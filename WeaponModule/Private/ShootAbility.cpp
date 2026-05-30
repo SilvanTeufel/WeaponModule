@@ -12,7 +12,7 @@ UShootAbility::UShootAbility()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
-bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData)
+bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData, float& OutExtraDamage, int32& OutMaxPiercedTargets)
 {
 	UWeaponComponent* WeaponComp = GetWeaponComponent();
 	if (!WeaponComp)
@@ -23,33 +23,30 @@ bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileCl
 
 	OutWeaponData = WeaponComp->GetCurrentWeaponData();
 	OutProjectileClass = OutWeaponData.ProjectileClass;
+	OutExtraDamage = 0.f;
+	OutMaxPiercedTargets = 1;
 
 	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: GetShootInfo for WeaponTag: %s, Projectile: %s"), 
 		*OutWeaponData.WeaponTag.ToString(), OutProjectileClass ? *OutProjectileClass->GetName() : TEXT("NULL"));
 
+	float CalculatedDamage = OutWeaponData.BaseDamage;
+	UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
+	if (WeaponAttributes)
+	{
+		CalculatedDamage = OutWeaponData.BaseDamage * WeaponAttributes->GetDamageMultiplier();
+		OutMaxPiercedTargets = 1 + FMath::FloorToInt(WeaponAttributes->GetPierceExtraCount());
+	}
+
 	if (OutProjectileClass)
 	{
-		if (AProjectile* ProjectileCDO = OutProjectileClass->GetDefaultObject<AProjectile>())
+		if (const AProjectile* ProjectileCDO = OutProjectileClass->GetDefaultObject<AProjectile>())
 		{
-			UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
-			if (WeaponAttributes)
-			{
-				float FinalDamage = OutWeaponData.BaseDamage * WeaponAttributes->GetDamageMultiplier();
-				ProjectileCDO->Damage = FinalDamage;
-				
-				int32 FinalPierce = 1 + FMath::FloorToInt(WeaponAttributes->GetPierceExtraCount());
-				ProjectileCDO->MaxPiercedTargets = FinalPierce;
-
-				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Applied multipliers - Damage: %.2f (Base: %.2f), Pierce: %d"), 
-					FinalDamage, OutWeaponData.BaseDamage, FinalPierce);
-			}
-			else
-			{
-				ProjectileCDO->Damage = OutWeaponData.BaseDamage;
-				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Overwriting Projectile Damage with BaseDamage: %.2f"), OutWeaponData.BaseDamage);
-			}
+			OutExtraDamage = CalculatedDamage - ProjectileCDO->Damage;
 		}
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Calculated - FinalDamage: %.2f (Extra: %.2f), Pierce: %d"), 
+		CalculatedDamage, OutExtraDamage, OutMaxPiercedTargets);
 
 	return true;
 }

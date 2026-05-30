@@ -153,44 +153,80 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 	// Punkte abziehen
 	WeaponAttributes->SetAttributeWeaponTalentPoints(WeaponAttributes->GetWeaponTalentPoints() - Upgrade.Cost);
 
-	// Da wir für die Vielzahl an Talenten keine vordefinierten GE-Klassen erzwingen wollen,
-	// modifizieren wir die Basiswerte der Attribute permanent direkt über den ASC.
-	// Dies ist für permanente Talent-Upgrades im C++ der direkteste Weg.
-	float CurrentBase = ASC->GetNumericAttributeBase(Upgrade.Attribute);
-	float NewBase = CurrentBase;
-
-	if (Upgrade.ModifierOp == EGameplayModOp::Additive)
+    // Increment Level Attribute (Raw points invested)
+    float NewLevel = 0.0f;
+	if (Upgrade.LevelAttribute.IsValid())
 	{
-		NewBase += Upgrade.ModifierValue;
+		NewLevel = ASC->GetNumericAttributeBase(Upgrade.LevelAttribute) + 1.0f;
+		ASC->SetNumericAttributeBase(Upgrade.LevelAttribute, NewLevel);
+	}
+    else
+    {
+        // Fallback if no level attribute, though there should be one
+        return false; 
+    }
+
+    // Calculate Effective Tier based on exponential cost (doubling points for next tier)
+    // 1 point -> Tier 1
+    // 3 points -> Tier 2
+    // 7 points -> Tier 3
+    // Formula: Tier = floor(log2(Points + 1))
+    float EffectiveTier = FMath::FloorToFloat(FMath::Log2(NewLevel + 1.0f));
+
+	// Calculate New Attribute Value
+	float NewValue = 0.0f;
+
+    if (Upgrade.Attribute == UWeaponAttributeSet::GetProjectileExtraCountAttribute())
+    {
+        // Special logic for Projectiles: 1->1, 3->2, 7->4
+        // Formula: Benefit = 2^(Tier - 1)
+        NewValue = (EffectiveTier > 0) ? FMath::Pow(2.0f, EffectiveTier - 1.0f) : 0.0f;
+    }
+    else if (Upgrade.ModifierOp == EGameplayModOp::Additive)
+	{
+        // For others, we scale the modifier by the Tier
+        // Damage, Pierce, MaxAmmo, MaxMagazines
+        float BaseVal = 0.0f;
+        if (Upgrade.Attribute == UWeaponAttributeSet::GetDamageMultiplierAttribute()) BaseVal = 1.0f;
+        else if (Upgrade.Attribute == UWeaponAttributeSet::GetMaxAmmoAttribute()) {
+             // For MaxAmmo, we use the weapon's base MaxAmmo as starting point
+             if (AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) BaseVal = AvailableWeapons[CurrentWeaponIndex].MaxAmmo;
+        }
+        else if (Upgrade.Attribute == UWeaponAttributeSet::GetMaxMagazinesAttribute()) {
+             if (AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) BaseVal = AvailableWeapons[CurrentWeaponIndex].MaxMagazines;
+        }
+        
+		NewValue = BaseVal + (EffectiveTier * Upgrade.ModifierValue);
 	}
 	else if (Upgrade.ModifierOp == EGameplayModOp::Multiplicitive)
 	{
-		NewBase *= Upgrade.ModifierValue;
+        // Cooldown, Reload Speed
+		NewValue = FMath::Pow(Upgrade.ModifierValue, EffectiveTier);
 	}
 	else if (Upgrade.ModifierOp == EGameplayModOp::Override)
 	{
-		NewBase = Upgrade.ModifierValue;
+		NewValue = Upgrade.ModifierValue;
 	}
 
-	ASC->SetNumericAttributeBase(Upgrade.Attribute, NewBase);
+	ASC->SetNumericAttributeBase(Upgrade.Attribute, NewValue);
 
-	if (Upgrade.Attribute == UWeaponAttributeSet::GetMaxMagazinesAttribute() && Upgrade.ModifierOp == EGameplayModOp::Additive)
+	if (Upgrade.Attribute == UWeaponAttributeSet::GetMaxMagazinesAttribute())
 	{
 		float CurrentAmount = ASC->GetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute());
-		ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute(), CurrentAmount + Upgrade.ModifierValue);
+        // Since MaxMagazines changed, we should probably adjust current amount if it was added.
+        // The user previously wanted: CurrentAmount + Upgrade.ModifierValue
+        // But with tiers, it's more complex. Let's just keep it simple: if Tier increased, add a magazine.
+        float OldTier = FMath::FloorToFloat(FMath::Log2(NewLevel)); // Tier before this point
+        if (EffectiveTier > OldTier)
+        {
+            ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetAmountMagazinesAttribute(), CurrentAmount + 1.0f);
+        }
 	}
 	
-	// Increment Level Attribute if valid
-	if (Upgrade.LevelAttribute.IsValid())
-	{
-		float CurrentLevel = ASC->GetNumericAttributeBase(Upgrade.LevelAttribute);
-		ASC->SetNumericAttributeBase(Upgrade.LevelAttribute, CurrentLevel + 1.0f);
-	}
-
 	SaveAttributesToWeapon(CurrentWeaponIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Purchased upgrade %s. New Base: %.2f. Points remaining: %.1f"), 
-		*Upgrade.Name.ToString(), NewBase, WeaponAttributes->GetWeaponTalentPoints());
+	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Purchased upgrade %s. New Level: %.0f, Tier: %.0f, New Value: %.2f"), 
+		*Upgrade.Name.ToString(), NewLevel, EffectiveTier, NewValue);
 	
 	return true;
 }

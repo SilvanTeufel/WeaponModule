@@ -19,7 +19,7 @@ public:
 	UShootAbility();
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	bool GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData);
+	bool GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData, float& OutExtraDamage, int32& OutMaxPiercedTargets);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void ApplyGlobalCooldown();
