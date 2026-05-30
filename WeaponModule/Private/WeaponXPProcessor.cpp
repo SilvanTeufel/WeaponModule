@@ -95,14 +95,17 @@ void UWeaponXPProcessor::Execute(FMassEntityManager& EntityManager, FMassExecuti
 								// If level increased, award additional Weapon Talent Points
 								if (LevelUnit->LevelData.CharacterLevel > OldLevel)
 								{
-									if (UWeaponComponent* WeaponComp = LevelUnit->FindComponentByClass<UWeaponComponent>())
-									{
-										if (WeaponComp->WeaponAttributes)
-										{
-											float NewPoints = WeaponComp->WeaponAttributes->GetWeaponTalentPoints() + WeaponComp->PointsPerLevel;
-											WeaponComp->WeaponAttributes->SetAttributeWeaponTalentPoints(NewPoints);
-										}
-									}
+ 								if (UWeaponComponent* WeaponComp = LevelUnit->FindComponentByClass<UWeaponComponent>())
+ 								{
+ 									// Alle verfügbaren Waffen erhalten Talentpunkte
+ 									for (FWeaponData& Weapon : WeaponComp->AvailableWeapons)
+ 									{
+ 										Weapon.WeaponTalentPoints += WeaponComp->PointsPerLevel;
+ 									}
+									
+ 									// Attribute für die aktuell ausgerüstete Waffe synchronisieren
+ 									WeaponComp->SyncAttributesFromWeapon(WeaponComp->CurrentWeaponIndex);
+ 								}
 								}
 							}
 						}

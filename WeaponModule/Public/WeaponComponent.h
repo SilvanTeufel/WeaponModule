@@ -51,6 +51,50 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FTransform Offset = FTransform::Identity;
+
+	// --- Per-Weapon Specialization Data ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float Ammo = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float WeaponTalentPoints = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float DamageMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float CooldownMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float ReloadSpeedMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float PierceExtraCount = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float ProjectileExtraCount = 0.0f;
+
+	// Talent Levels
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float DamageTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float CooldownTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float ReloadSpeedTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float PierceTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float ProjectileTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float MaxAmmoTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float AmountMagazinesTalentLevel = 0.0f;
 };
 
 USTRUCT(BlueprintType)
@@ -111,6 +155,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	bool PurchaseUpgrade(FWeaponUpgrade Upgrade);
+
+	void SyncAttributesFromWeapon(int32 Index);
+	void SaveAttributesToWeapon(int32 Index);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	int32 PointsPerLevel = 1;

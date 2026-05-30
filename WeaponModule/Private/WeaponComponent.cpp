@@ -42,9 +42,7 @@ void UWeaponComponent::BeginPlay()
 
 			if (WeaponAttributes && AvailableWeapons.IsValidIndex(CurrentWeaponIndex))
 			{
-				WeaponAttributes->SetAttributeMaxAmmo(AvailableWeapons[CurrentWeaponIndex].MaxAmmo);
-				WeaponAttributes->SetAttributeAmmo(AvailableWeapons[CurrentWeaponIndex].MaxAmmo);
-				WeaponAttributes->SetAttributeAmountMagazines(AvailableWeapons[CurrentWeaponIndex].AmountMagazines);
+				SyncAttributesFromWeapon(CurrentWeaponIndex);
 			}
 		}
 	}
@@ -58,25 +56,65 @@ void UWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void UWeaponComponent::OnRep_CurrentWeaponIndex()
 {
-	// Hier könnte man Events triggern, um das Visual zu aktualisieren
-	// Der MassProcessor wird das aber wahrscheinlich über das Fragment erledigen
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
 }
 
 void UWeaponComponent::Server_SwitchWeapon_Implementation(int32 NewIndex)
 {
 	if (AvailableWeapons.IsValidIndex(NewIndex))
 	{
+		SaveAttributesToWeapon(CurrentWeaponIndex);
 		CurrentWeaponIndex = NewIndex;
-		
-		if (WeaponAttributes)
-		{
-			WeaponAttributes->SetAttributeMaxAmmo(AvailableWeapons[CurrentWeaponIndex].MaxAmmo);
-			WeaponAttributes->SetAttributeAmmo(AvailableWeapons[CurrentWeaponIndex].MaxAmmo);
-			WeaponAttributes->SetAttributeAmountMagazines(AvailableWeapons[CurrentWeaponIndex].AmountMagazines);
-		}
-		
-		OnRep_CurrentWeaponIndex(); // Manuell aufrufen auf Server, falls nötig
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+		OnRep_CurrentWeaponIndex();
 	}
+}
+
+void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
+{
+	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(Index)) return;
+	FWeaponData& Data = AvailableWeapons[Index];
+
+	WeaponAttributes->SetAttributeMaxAmmo(Data.MaxAmmo);
+	WeaponAttributes->SetAttributeAmmo(Data.Ammo > 0 ? Data.Ammo : Data.MaxAmmo);
+	WeaponAttributes->SetAttributeAmountMagazines(Data.AmountMagazines);
+	
+	WeaponAttributes->SetAttributeWeaponTalentPoints(Data.WeaponTalentPoints);
+	WeaponAttributes->SetDamageMultiplier(Data.DamageMultiplier);
+	WeaponAttributes->SetCooldownMultiplier(Data.CooldownMultiplier);
+	WeaponAttributes->SetReloadSpeedMultiplier(Data.ReloadSpeedMultiplier);
+	WeaponAttributes->SetPierceExtraCount(Data.PierceExtraCount);
+	WeaponAttributes->SetProjectileExtraCount(Data.ProjectileExtraCount);
+
+	WeaponAttributes->SetDamageTalentLevel(Data.DamageTalentLevel);
+	WeaponAttributes->SetCooldownTalentLevel(Data.CooldownTalentLevel);
+	WeaponAttributes->SetReloadSpeedTalentLevel(Data.ReloadSpeedTalentLevel);
+	WeaponAttributes->SetPierceTalentLevel(Data.PierceTalentLevel);
+	WeaponAttributes->SetProjectileTalentLevel(Data.ProjectileTalentLevel);
+	WeaponAttributes->SetMaxAmmoTalentLevel(Data.MaxAmmoTalentLevel);
+	WeaponAttributes->SetAmountMagazinesTalentLevel(Data.AmountMagazinesTalentLevel);
+}
+
+void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
+{
+	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(Index)) return;
+	FWeaponData& Data = AvailableWeapons[Index];
+
+	Data.Ammo = WeaponAttributes->GetAmmo();
+	Data.WeaponTalentPoints = WeaponAttributes->GetWeaponTalentPoints();
+	Data.DamageMultiplier = WeaponAttributes->GetDamageMultiplier();
+	Data.CooldownMultiplier = WeaponAttributes->GetCooldownMultiplier();
+	Data.ReloadSpeedMultiplier = WeaponAttributes->GetReloadSpeedMultiplier();
+	Data.PierceExtraCount = WeaponAttributes->GetPierceExtraCount();
+	Data.ProjectileExtraCount = WeaponAttributes->GetProjectileExtraCount();
+
+	Data.DamageTalentLevel = WeaponAttributes->GetDamageTalentLevel();
+	Data.CooldownTalentLevel = WeaponAttributes->GetCooldownTalentLevel();
+	Data.ReloadSpeedTalentLevel = WeaponAttributes->GetReloadSpeedTalentLevel();
+	Data.PierceTalentLevel = WeaponAttributes->GetPierceTalentLevel();
+	Data.ProjectileTalentLevel = WeaponAttributes->GetProjectileTalentLevel();
+	Data.MaxAmmoTalentLevel = WeaponAttributes->GetMaxAmmoTalentLevel();
+	Data.AmountMagazinesTalentLevel = WeaponAttributes->GetAmountMagazinesTalentLevel();
 }
 
 FWeaponData UWeaponComponent::GetCurrentWeaponData() const
@@ -131,6 +169,8 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 		float CurrentLevel = ASC->GetNumericAttributeBase(Upgrade.LevelAttribute);
 		ASC->SetNumericAttributeBase(Upgrade.LevelAttribute, CurrentLevel + 1.0f);
 	}
+
+	SaveAttributesToWeapon(CurrentWeaponIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Purchased upgrade %s. New Base: %.2f. Points remaining: %.1f"), 
 		*Upgrade.Name.ToString(), NewBase, WeaponAttributes->GetWeaponTalentPoints());
