@@ -28,6 +28,14 @@ void UWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (GetOwner()->HasAuthority())
+	{
+		for (FWeaponData& Weapon : AvailableWeapons)
+		{
+			Weapon.WeaponTalentPoints += StartTalentPoints;
+		}
+	}
+
 	if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(GetOwner()))
 	{
 		UAbilitySystemComponent* ASC = ASCInterface->GetAbilitySystemComponent();

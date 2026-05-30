@@ -171,6 +171,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	int32 PointsPerLevel = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float StartTalentPoints = 0.0f;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = "Preview")
 	TObjectPtr<UStaticMeshComponent> WeaponPreview;
