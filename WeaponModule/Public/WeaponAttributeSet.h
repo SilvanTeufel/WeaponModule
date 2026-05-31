@@ -243,4 +243,26 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttributeSelectedEffectIndex3(float NewValue);
+
+	// GranadeTalentPoints //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_EffectAreaTalentPoints)
+	FGameplayAttributeData EffectAreaTalentPoints;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, EffectAreaTalentPoints);
+
+	UFUNCTION()
+	virtual void OnRep_EffectAreaTalentPoints(const FGameplayAttributeData& OldEffectAreaTalentPoints);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeEffectAreaTalentPoints(float NewValue);
+
+	// SelectedGranadeIndex //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_SelectedEffectAreaIndex)
+	FGameplayAttributeData SelectedEffectAreaIndex;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, SelectedEffectAreaIndex);
+
+	UFUNCTION()
+	virtual void OnRep_SelectedEffectAreaIndex(const FGameplayAttributeData& OldSelectedEffectAreaIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeSelectedEffectAreaIndex(float NewValue);
 };

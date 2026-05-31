@@ -70,6 +70,42 @@ bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileCl
 	return true;
 }
 
+bool UShootAbility::GetEffectAreaInfo(int32 Index, FEffectAreaInfo& OutAreaInfo)
+{
+	UWeaponComponent* WeaponComp = GetWeaponComponent();
+	if (!WeaponComp) return false;
+
+	if (WeaponComp->EffectAreas.IsValidIndex(Index))
+	{
+		FEffectAreaData& AreaData = WeaponComp->EffectAreas[Index];
+		OutAreaInfo.Radius = AreaData.BaseRadius;
+		OutAreaInfo.Damage = AreaData.BaseDamage;
+
+		if (AreaData.SelectedTalentIndices.IsValidIndex(0))
+		{
+			int32 TIndex = AreaData.SelectedTalentIndices[0];
+			if (AreaData.PossibleEffects.IsValidIndex(TIndex))
+				OutAreaInfo.Effect1 = AreaData.PossibleEffects[TIndex];
+		}
+
+		if (AreaData.SelectedTalentIndices.IsValidIndex(1))
+		{
+			int32 TIndex = AreaData.SelectedTalentIndices[1];
+			if (AreaData.PossibleEffects.IsValidIndex(TIndex))
+				OutAreaInfo.Effect2 = AreaData.PossibleEffects[TIndex];
+		}
+
+		if (AreaData.SelectedTalentIndices.IsValidIndex(2))
+		{
+			int32 TIndex = AreaData.SelectedTalentIndices[2];
+			if (AreaData.PossibleEffects.IsValidIndex(TIndex))
+				OutAreaInfo.Effect3 = AreaData.PossibleEffects[TIndex];
+		}
+		return true;
+	}
+	return false;
+}
+
 void UShootAbility::ApplyGlobalCooldown()
 {
 	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: ApplyGlobalCooldown called manually."));

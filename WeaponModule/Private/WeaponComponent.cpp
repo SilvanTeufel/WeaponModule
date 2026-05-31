@@ -2,6 +2,7 @@
 
 #include "WeaponComponent.h"
 #include "WeaponAttributeSet.h"
+#include "Characters/Unit/LevelUnit.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Net/UnrealNetwork.h"
@@ -30,11 +31,12 @@ void UWeaponComponent::BeginPlay()
 
 	if (GetOwner()->HasAuthority())
 	{
-		for (FWeaponData& Weapon : AvailableWeapons)
+		for (int32 i = 0; i < AvailableWeapons.Num(); ++i)
 		{
-			Weapon.WeaponTalentPoints += StartTalentPoints;
-			Weapon.EffectTalentPoints += StartEffectTalentPoints;
+			AvailableWeapons[i].WeaponTalentPoints += StartTalentPoints;
+			AvailableWeapons[i].EffectTalentPoints += StartEffectTalentPoints;
 		}
+		EffectAreaTalentPoints += StartEffectAreaTalentPoints;
 	}
 
 	if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(GetOwner()))
@@ -61,6 +63,8 @@ void UWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UWeaponComponent, CurrentWeaponIndex);
+	DOREPLIFETIME(UWeaponComponent, EffectAreas);
+	DOREPLIFETIME(UWeaponComponent, EffectAreaTalentPoints);
 }
 
 void UWeaponComponent::OnRep_CurrentWeaponIndex()
@@ -108,6 +112,16 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 	WeaponAttributes->SetAttributeSelectedEffectIndex(Data.SelectedEffectIndex1);
 	WeaponAttributes->SetAttributeSelectedEffectIndex2(Data.SelectedEffectIndex2);
 	WeaponAttributes->SetAttributeSelectedEffectIndex3(Data.SelectedEffectIndex3);
+
+	if (ALevelUnit* LevelUnit = Cast<ALevelUnit>(GetOwner())) {
+		int32 LevelPoints = LevelUnit->GetCharacterLevel() / LevelDivisor;
+		float TotalPoints = EffectAreaTalentPoints + (float)LevelPoints;
+		WeaponAttributes->SetAttributeEffectAreaTalentPoints(TotalPoints);
+	}
+	else
+	{
+		WeaponAttributes->SetAttributeEffectAreaTalentPoints(EffectAreaTalentPoints);
+	}
 }
 
 void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
@@ -275,6 +289,43 @@ void UWeaponComponent::Server_SelectEffectTalent_Implementation(int32 Index)
 	}
 }
 
+void UWeaponComponent::Server_SelectEffectAreaIndex_Implementation(int32 Index)
+{
+	if (EffectAreas.IsValidIndex(Index))
+	{
+		if (WeaponAttributes)
+		{
+			WeaponAttributes->SetAttributeSelectedEffectAreaIndex(Index);
+		}
+	}
+}
+
+void UWeaponComponent::Server_ToggleEffectAreaTalent_Implementation(int32 AreaIndex, int32 TalentIndex)
+{
+	if (!EffectAreas.IsValidIndex(AreaIndex)) return;
+	FEffectAreaData& AreaData = EffectAreas[AreaIndex];
+
+	if (!AreaData.PossibleEffects.IsValidIndex(TalentIndex)) return;
+
+	if (AreaData.SelectedTalentIndices.Contains(TalentIndex))
+	{
+		AreaData.SelectedTalentIndices.Remove(TalentIndex);
+		AreaData.SpentPoints -= 1.0f;
+		EffectAreaTalentPoints += 1.0f;
+	}
+	else
+	{
+		if (AreaData.SelectedTalentIndices.Num() < 3 && EffectAreaTalentPoints >= 1.0f)
+		{
+			AreaData.SelectedTalentIndices.Add(TalentIndex);
+			AreaData.SpentPoints += 1.0f;
+			EffectAreaTalentPoints -= 1.0f;
+		}
+	}
+
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
+}
+
 void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 {
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return;
@@ -340,6 +391,19 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	SaveAttributesToWeapon(CurrentWeaponIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Reset talents for current weapon. Refunded %.1f normal points."), InvestedPoints);
+}
+
+void UWeaponComponent::Server_ResetEffectAreaTalents_Implementation(int32 AreaIndex)
+{
+	if (EffectAreas.IsValidIndex(AreaIndex))
+	{
+		FEffectAreaData& AreaData = EffectAreas[AreaIndex];
+		EffectAreaTalentPoints += AreaData.SpentPoints;
+		AreaData.SpentPoints = 0.0f;
+		AreaData.SelectedTalentIndices.Empty();
+
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+	}
 }
 
 #if WITH_EDITOR

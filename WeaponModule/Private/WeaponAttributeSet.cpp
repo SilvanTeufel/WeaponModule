@@ -23,6 +23,8 @@ UWeaponAttributeSet::UWeaponAttributeSet()
 	InitSelectedEffectIndex(-1.0f);
 	InitSelectedEffectIndex2(-1.0f);
 	InitSelectedEffectIndex3(-1.0f);
+	InitEffectAreaTalentPoints(0.0f);
+	InitSelectedEffectAreaIndex(-1.0f);
 }
 
 void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -50,6 +52,8 @@ void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectIndex, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectIndex2, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectIndex3, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, EffectAreaTalentPoints, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectAreaIndex, COND_None, REPNOTIFY_Always);
 }
 
 void UWeaponAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -228,4 +232,24 @@ void UWeaponAttributeSet::SetAttributeSelectedEffectIndex2(float NewValue)
 void UWeaponAttributeSet::SetAttributeSelectedEffectIndex3(float NewValue)
 {
 	SetSelectedEffectIndex3(NewValue);
+}
+
+void UWeaponAttributeSet::OnRep_EffectAreaTalentPoints(const FGameplayAttributeData& OldEffectAreaTalentPoints)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, EffectAreaTalentPoints, OldEffectAreaTalentPoints);
+}
+
+void UWeaponAttributeSet::SetAttributeEffectAreaTalentPoints(float NewValue)
+{
+	SetEffectAreaTalentPoints(NewValue);
+}
+
+void UWeaponAttributeSet::OnRep_SelectedEffectAreaIndex(const FGameplayAttributeData& OldSelectedGranadeIndex)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, SelectedEffectAreaIndex, OldSelectedGranadeIndex);
+}
+
+void UWeaponAttributeSet::SetAttributeSelectedEffectAreaIndex(float NewValue)
+{
+	SetSelectedEffectAreaIndex(NewValue);
 }

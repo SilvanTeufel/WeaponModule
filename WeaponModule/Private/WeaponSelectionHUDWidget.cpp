@@ -3,6 +3,7 @@
 #include "WeaponSelectionHUDWidget.h"
 #include "WeaponTalentWidget.h"
 #include "WeaponEffectTalentWidget.h"
+#include "EffectAreaTalentWidget.h"
 #include "Hud/HUDBase.h"
 #include "Characters/Unit/UnitBase.h"
 #include "WeaponComponent.h"
@@ -85,6 +86,47 @@ void UWeaponSelectionHUDWidget::CreateHUDWidgets()
 				WeaponEffectTalentContainer->AddChild(PreviewWidget);
 			}
 		}
+
+		if (IsDesignTime() && EffectAreaTalentContainer && WeaponEffectAreaTalentWidgetClass)
+		{
+			EffectAreaTalentContainer->ClearChildren();
+			if (UEffectAreaTalentWidget* PreviewWidget = CreateWidget<UEffectAreaTalentWidget>(this, WeaponEffectAreaTalentWidgetClass))
+			{
+				EffectAreaTalentContainer->AddChild(PreviewWidget);
+			}
+		}
+	}
+}
+
+void UWeaponSelectionHUDWidget::ToggleEffectAreaTalentWidget(AUnitBase* Unit)
+{
+	if (!EffectAreaTalentContainer || !WeaponEffectAreaTalentWidgetClass) return;
+
+	if (EffectAreaTalentWidgetInstance)
+	{
+		if (EffectAreaTalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible && EffectAreaTalentWidgetInstance->GetTargetUnit() == Unit)
+		{
+			EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+			return;
+		}
+	}
+	else
+	{
+		EffectAreaTalentWidgetInstance = CreateWidget<UEffectAreaTalentWidget>(this, WeaponEffectAreaTalentWidgetClass);
+		if (EffectAreaTalentWidgetInstance)
+		{
+			EffectAreaTalentContainer->AddChild(EffectAreaTalentWidgetInstance);
+		}
+	}
+
+	if (EffectAreaTalentWidgetInstance)
+	{
+		EffectAreaTalentWidgetInstance->SetTargetUnit(Unit);
+		EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+		// Hide other widgets
+		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -115,6 +157,10 @@ void UWeaponSelectionHUDWidget::ToggleTalentWidget(AUnitBase* Unit)
 	{
 		TalentWidgetInstance->SetTargetUnit(Unit);
 		TalentWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+		// Hide other widgets
+		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -145,6 +191,10 @@ void UWeaponSelectionHUDWidget::ToggleEffectTalentWidget(AUnitBase* Unit)
 	{
 		EffectTalentWidgetInstance->SetTargetUnit(Unit);
 		EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+		// Hide other widgets
+		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -224,6 +274,22 @@ void UWeaponSelectionHUDWidget::UpdateSelection()
 		else
 		{
 			EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// Update Effect Area Talent Widget if visible
+	if (EffectAreaTalentWidgetInstance && EffectAreaTalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		if (SelectedUnitsWithWeapons.Num() > 0)
+		{
+			if (SelectedUnitsWithWeapons.Num() == 1 || !SelectedUnitsWithWeapons.Contains(EffectAreaTalentWidgetInstance->GetTargetUnit()))
+			{
+				EffectAreaTalentWidgetInstance->SetTargetUnit(SelectedUnitsWithWeapons[0]);
+			}
+		}
+		else
+		{
+			EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }

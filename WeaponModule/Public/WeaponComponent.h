@@ -119,6 +119,30 @@ struct FWeaponData
 };
 
 USTRUCT(BlueprintType)
+struct FEffectAreaData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	FString Name = TEXT("Effect Area");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float BaseRadius = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float BaseDamage = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	TArray<TSubclassOf<class UGameplayEffect>> PossibleEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	TArray<int32> SelectedTalentIndices;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float SpentPoints = 0.0f;
+};
+
+USTRUCT(BlueprintType)
 struct FWeaponUpgrade
 {
 	GENERATED_BODY()
@@ -162,6 +186,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TArray<FWeaponData> AvailableWeapons;
 
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	TArray<FEffectAreaData> EffectAreas;
+
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeaponIndex, BlueprintReadOnly, Category = "Weapon")
 	int32 CurrentWeaponIndex = 0;
 
@@ -181,19 +208,37 @@ public:
 	void Server_SelectEffectTalent(int32 Index);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
+	void Server_SelectEffectAreaIndex(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
 	void Server_ResetCurrentWeaponTalents();
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
+	void Server_ResetEffectAreaTalents(int32 AreaIndex);
 
 	void SyncAttributesFromWeapon(int32 Index);
 	void SaveAttributesToWeapon(int32 Index);
 
+	UFUNCTION(Server, Reliable)
+	void Server_ToggleEffectAreaTalent(int32 AreaIndex, int32 TalentIndex);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	int32 PointsPerLevel = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	int32 LevelDivisor = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	float StartTalentPoints = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	float StartEffectTalentPoints = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float StartEffectAreaTalentPoints = 0.0f;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float EffectAreaTalentPoints = 0.0f;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = "Preview")

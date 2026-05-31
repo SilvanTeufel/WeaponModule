@@ -36,6 +36,9 @@ public:
 	TSubclassOf<class UWeaponEffectTalentWidget> WeaponEffectTalentWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
+	TSubclassOf<class UEffectAreaTalentWidget> WeaponEffectAreaTalentWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
 	int32 MaxDisplayedUnits = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
@@ -60,6 +63,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UPanelWidget* WeaponEffectTalentContainer;
 
+	UPROPERTY(meta = (BindWidget))
+	class UPanelWidget* EffectAreaTalentContainer;
+
 	UPROPERTY()
 	TArray<UWeaponHUDWidget*> WeaponHUDWidgets;
 
@@ -69,12 +75,18 @@ protected:
 	UPROPERTY()
 	class UWeaponEffectTalentWidget* EffectTalentWidgetInstance;
 
+	UPROPERTY()
+	class UEffectAreaTalentWidget* EffectAreaTalentWidgetInstance;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleTalentWidget(class AUnitBase* Unit);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleEffectTalentWidget(class AUnitBase* Unit);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
+	void ToggleEffectAreaTalentWidget(class AUnitBase* Unit);
 
 protected:
 
