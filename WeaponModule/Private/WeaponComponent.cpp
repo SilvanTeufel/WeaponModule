@@ -33,6 +33,10 @@ void UWeaponComponent::BeginPlay()
 	{
 		for (int32 i = 0; i < AvailableWeapons.Num(); ++i)
 		{
+			if (AvailableWeapons[i].Ammo == 0)
+			{
+				AvailableWeapons[i].Ammo = AvailableWeapons[i].MaxAmmoSpec > 0 ? AvailableWeapons[i].MaxAmmoSpec : AvailableWeapons[i].MaxAmmo;
+			}
 			AvailableWeapons[i].WeaponTalentPoints += StartTalentPoints;
 			AvailableWeapons[i].EffectTalentPoints += StartEffectTalentPoints;
 		}
@@ -113,7 +117,7 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 	FWeaponData& Data = AvailableWeapons[Index];
 
 	WeaponAttributes->SetAttributeMaxAmmo(Data.MaxAmmoSpec > 0 ? Data.MaxAmmoSpec : Data.MaxAmmo);
-	WeaponAttributes->SetAttributeAmmo(Data.Ammo > 0 ? Data.Ammo : Data.MaxAmmo);
+	WeaponAttributes->SetAttributeAmmo(Data.Ammo);
 	WeaponAttributes->SetAttributeMaxMagazines(Data.MaxMagazinesSpec > 0 ? Data.MaxMagazinesSpec : Data.MaxMagazines);
 	WeaponAttributes->SetAttributeAmountMagazines(Data.AmountMagazines);
 	
