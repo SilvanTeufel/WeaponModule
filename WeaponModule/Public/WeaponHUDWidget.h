@@ -21,7 +21,7 @@ public:
 	void UpdateWidget(class AUnitBase* Unit);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
-	void GetWeaponAttributes(float& Ammo, float& MaxAmmo, float& Magazines);
+	void GetWeaponAttributes(float& Ammo, float& MaxAmmo, float& Magazines, float& MaxMagazines);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void GetUnitAttributes(float& Health, float& MaxHealth, float& Shield, float& MaxShield, float& Mana, float& MaxMana, float& Experience, float& MaxExperience);

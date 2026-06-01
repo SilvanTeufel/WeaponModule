@@ -78,6 +78,9 @@ struct FWeaponData
 	float ProjectileExtraCount = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float MaxAmmoSpec = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float MaxMagazinesSpec = 0.0f;
 
 	// Talent Levels

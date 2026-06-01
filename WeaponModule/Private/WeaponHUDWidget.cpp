@@ -129,11 +129,12 @@ void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
 	}
 }
 
-void UWeaponHUDWidget::GetWeaponAttributes(float& Ammo, float& MaxAmmo, float& Magazines)
+void UWeaponHUDWidget::GetWeaponAttributes(float& Ammo, float& MaxAmmo, float& Magazines, float& MaxMagazines)
 {
 	Ammo = 0.f;
 	MaxAmmo = 0.f;
 	Magazines = 0.f;
+	MaxMagazines = 0.f;
 
 	UAbilitySystemComponent* ASC = GetSelectedUnitASC();
 	if (ASC)
@@ -144,6 +145,7 @@ void UWeaponHUDWidget::GetWeaponAttributes(float& Ammo, float& MaxAmmo, float& M
 			Ammo = WeaponAttributes->GetAmmo();
 			MaxAmmo = WeaponAttributes->GetMaxAmmo();
 			Magazines = WeaponAttributes->GetAmountMagazines();
+			MaxMagazines = WeaponAttributes->GetMaxMagazines();
 		}
 	}
 }

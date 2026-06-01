@@ -112,7 +112,7 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(Index)) return;
 	FWeaponData& Data = AvailableWeapons[Index];
 
-	WeaponAttributes->SetAttributeMaxAmmo(Data.MaxAmmo);
+	WeaponAttributes->SetAttributeMaxAmmo(Data.MaxAmmoSpec > 0 ? Data.MaxAmmoSpec : Data.MaxAmmo);
 	WeaponAttributes->SetAttributeAmmo(Data.Ammo > 0 ? Data.Ammo : Data.MaxAmmo);
 	WeaponAttributes->SetAttributeMaxMagazines(Data.MaxMagazinesSpec > 0 ? Data.MaxMagazinesSpec : Data.MaxMagazines);
 	WeaponAttributes->SetAttributeAmountMagazines(Data.AmountMagazines);
@@ -154,6 +154,7 @@ void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
 	FWeaponData& Data = AvailableWeapons[Index];
 
 	Data.Ammo = WeaponAttributes->GetAmmo();
+	Data.MaxAmmoSpec = WeaponAttributes->GetMaxAmmo();
 	Data.AmountMagazines = WeaponAttributes->GetAmountMagazines();
 	Data.MaxMagazinesSpec = WeaponAttributes->GetMaxMagazines();
 	Data.WeaponTalentPoints = WeaponAttributes->GetWeaponTalentPoints();
