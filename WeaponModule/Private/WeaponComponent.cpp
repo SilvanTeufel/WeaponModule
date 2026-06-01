@@ -150,6 +150,18 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 
 void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
 {
+	if (!WeaponAttributes)
+	{
+		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(GetOwner()))
+		{
+			UAbilitySystemComponent* ASC = ASCInterface->GetAbilitySystemComponent();
+			if (ASC)
+			{
+				WeaponAttributes = const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>());
+			}
+		}
+	}
+	
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(Index)) return;
 	FWeaponData& Data = AvailableWeapons[Index];
 

@@ -21,6 +21,7 @@ bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileCl
 		return false;
 	}
 
+	WeaponComp->SaveAttributesToWeapon(WeaponComp->CurrentWeaponIndex);
 	OutWeaponData = WeaponComp->GetCurrentWeaponData();
 	OutProjectileClass = OutWeaponData.ProjectileClass;
 	OutExtraDamage = 0.f;
@@ -120,6 +121,11 @@ void UShootAbility::ModifyAmmo(float Amount)
 		float NewAmmo = WeaponAttributes->GetAmmo() + Amount;
 		WeaponAttributes->SetAttributeAmmo(NewAmmo);
 		UE_LOG(LogTemp, Log, TEXT("[WeaponModule] ShootAbility: Modified Ammo by %.1f. New Ammo: %.1f"), Amount, NewAmmo);
+
+		if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+		{
+			WeaponComp->SaveAttributesToWeapon(WeaponComp->CurrentWeaponIndex);
+		}
 	}
 }
 
