@@ -33,3 +33,33 @@ void UWeaponHUDComponent::RegisterWeaponHUD(UWeaponSelectionHUDWidget* InWidget,
 		WeaponSelectionWidgetInstance->InitWidget(InController);
 	}
 }
+
+void UWeaponHUDComponent::Server_PurchaseUpgrade_Implementation(UWeaponComponent* WeaponComp, FWeaponUpgrade Upgrade)
+{
+	if (WeaponComp) WeaponComp->PurchaseUpgrade(Upgrade);
+}
+
+void UWeaponHUDComponent::Server_SelectEffectTalent_Implementation(UWeaponComponent* WeaponComp, int32 Index)
+{
+	if (WeaponComp) WeaponComp->Server_SelectEffectTalent(Index);
+}
+
+void UWeaponHUDComponent::Server_ToggleEffectAreaTalent_Implementation(UWeaponComponent* WeaponComp, int32 AreaIndex, int32 TalentIndex)
+{
+	if (WeaponComp) WeaponComp->Server_ToggleEffectAreaTalent(AreaIndex, TalentIndex);
+}
+
+void UWeaponHUDComponent::Server_ResetCurrentWeaponTalents_Implementation(UWeaponComponent* WeaponComp)
+{
+	if (WeaponComp) WeaponComp->Server_ResetCurrentWeaponTalents();
+}
+
+void UWeaponHUDComponent::Server_ResetEffectAreaTalents_Implementation(UWeaponComponent* WeaponComp, int32 AreaIndex)
+{
+	if (WeaponComp) WeaponComp->Server_ResetEffectAreaTalents(AreaIndex);
+}
+
+void UWeaponHUDComponent::Server_SelectEffectAreaIndex_Implementation(UWeaponComponent* WeaponComp, int32 Index)
+{
+	if (WeaponComp) WeaponComp->Server_SelectEffectAreaIndex(Index);
+}

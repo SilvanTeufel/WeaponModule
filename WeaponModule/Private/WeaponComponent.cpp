@@ -45,13 +45,19 @@ void UWeaponComponent::BeginPlay()
 		if (ASC)
 		{
 			WeaponAttributes = const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>());
-			if (!WeaponAttributes)
+			
+			if (GetOwner()->HasAuthority())
 			{
-				WeaponAttributes = NewObject<UWeaponAttributeSet>(ASC->GetOwnerActor(), UWeaponAttributeSet::StaticClass());
-				ASC->AddAttributeSetSubobject(WeaponAttributes);
+				if (!WeaponAttributes)
+				{
+					WeaponAttributes = NewObject<UWeaponAttributeSet>(ASC->GetOwnerActor(), UWeaponAttributeSet::StaticClass());
+					ASC->AddAttributeSetSubobject(WeaponAttributes);
+				}
 			}
 
-			if (WeaponAttributes && AvailableWeapons.IsValidIndex(CurrentWeaponIndex))
+			// On Server this initializes the AttributeSet.
+			// On Client this tries to find the AttributeSet and sync if it already replicated.
+			if (AvailableWeapons.IsValidIndex(CurrentWeaponIndex))
 			{
 				SyncAttributesFromWeapon(CurrentWeaponIndex);
 			}
@@ -63,11 +69,17 @@ void UWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UWeaponComponent, CurrentWeaponIndex);
+	DOREPLIFETIME(UWeaponComponent, AvailableWeapons);
 	DOREPLIFETIME(UWeaponComponent, EffectAreas);
 	DOREPLIFETIME(UWeaponComponent, EffectAreaTalentPoints);
 }
 
 void UWeaponComponent::OnRep_CurrentWeaponIndex()
+{
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
+}
+
+void UWeaponComponent::OnRep_AvailableWeapons()
 {
 	SyncAttributesFromWeapon(CurrentWeaponIndex);
 }
@@ -85,6 +97,18 @@ void UWeaponComponent::Server_SwitchWeapon_Implementation(int32 NewIndex)
 
 void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 {
+	if (!WeaponAttributes)
+	{
+		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(GetOwner()))
+		{
+			UAbilitySystemComponent* ASC = ASCInterface->GetAbilitySystemComponent();
+			if (ASC)
+			{
+				WeaponAttributes = const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>());
+			}
+		}
+	}
+	
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(Index)) return;
 	FWeaponData& Data = AvailableWeapons[Index];
 
@@ -164,6 +188,12 @@ FWeaponData UWeaponComponent::GetCurrentWeaponData() const
 
 bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		Server_PurchaseUpgrade(Upgrade);
+		return true;
+	}
+
 	if (!WeaponAttributes) return false;
 
 	float AvailablePoints = WeaponAttributes->GetWeaponTalentPoints();
@@ -260,6 +290,11 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 	return true;
 }
 
+void UWeaponComponent::Server_PurchaseUpgrade_Implementation(FWeaponUpgrade Upgrade)
+{
+	PurchaseUpgrade(Upgrade);
+}
+
 void UWeaponComponent::Server_SelectEffectTalent_Implementation(int32 Index)
 {
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return;
@@ -323,6 +358,7 @@ void UWeaponComponent::Server_ToggleEffectAreaTalent_Implementation(int32 AreaIn
 		}
 	}
 
+	EffectAreas[AreaIndex] = AreaData; // Force replication
 	SyncAttributesFromWeapon(CurrentWeaponIndex);
 }
 

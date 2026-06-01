@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "WeaponSelectionHUDWidget.h"
+#include "WeaponComponent.h"
 #include "WeaponHUDComponent.generated.h"
 
 class ACustomControllerBase;
@@ -31,4 +32,22 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void RegisterWeaponHUD(UWeaponSelectionHUDWidget* InWidget, ACustomControllerBase* InController);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_PurchaseUpgrade(UWeaponComponent* WeaponComp, FWeaponUpgrade Upgrade);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_SelectEffectTalent(UWeaponComponent* WeaponComp, int32 Index);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_ToggleEffectAreaTalent(UWeaponComponent* WeaponComp, int32 AreaIndex, int32 TalentIndex);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_ResetCurrentWeaponTalents(UWeaponComponent* WeaponComp);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_ResetEffectAreaTalents(UWeaponComponent* WeaponComp, int32 AreaIndex);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_SelectEffectAreaIndex(UWeaponComponent* WeaponComp, int32 Index);
 };

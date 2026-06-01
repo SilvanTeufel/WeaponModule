@@ -2,6 +2,7 @@
 
 #include "EffectAreaTalentWidget.h"
 #include "WeaponAttributeSet.h"
+#include "WeaponHUDComponent.h"
 #include "Characters/Unit/UnitBase.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
@@ -104,6 +105,14 @@ void UEffectAreaTalentWidget::OnEffectAreaOneClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ToggleEffectAreaTalent(WeaponComp, CurrentlyEditingIndex, 0);
+				return;
+			}
+		}
 		WeaponComp->Server_ToggleEffectAreaTalent(CurrentlyEditingIndex, 0);
 	}
 }
@@ -112,6 +121,14 @@ void UEffectAreaTalentWidget::OnEffectAreaTwoClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ToggleEffectAreaTalent(WeaponComp, CurrentlyEditingIndex, 1);
+				return;
+			}
+		}
 		WeaponComp->Server_ToggleEffectAreaTalent(CurrentlyEditingIndex, 1);
 	}
 }
@@ -120,6 +137,14 @@ void UEffectAreaTalentWidget::OnEffectAreaThreeClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ToggleEffectAreaTalent(WeaponComp, CurrentlyEditingIndex, 2);
+				return;
+			}
+		}
 		WeaponComp->Server_ToggleEffectAreaTalent(CurrentlyEditingIndex, 2);
 	}
 }
@@ -128,6 +153,14 @@ void UEffectAreaTalentWidget::OnEffectAreaFourClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ToggleEffectAreaTalent(WeaponComp, CurrentlyEditingIndex, 3);
+				return;
+			}
+		}
 		WeaponComp->Server_ToggleEffectAreaTalent(CurrentlyEditingIndex, 3);
 	}
 }
@@ -136,6 +169,14 @@ void UEffectAreaTalentWidget::OnEffectAreaFiveClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ToggleEffectAreaTalent(WeaponComp, CurrentlyEditingIndex, 4);
+				return;
+			}
+		}
 		WeaponComp->Server_ToggleEffectAreaTalent(CurrentlyEditingIndex, 4);
 	}
 }
@@ -144,6 +185,14 @@ void UEffectAreaTalentWidget::OnEffectAreaSixClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ToggleEffectAreaTalent(WeaponComp, CurrentlyEditingIndex, 5);
+				return;
+			}
+		}
 		WeaponComp->Server_ToggleEffectAreaTalent(CurrentlyEditingIndex, 5);
 	}
 }
@@ -155,6 +204,14 @@ void UEffectAreaTalentWidget::OnIncreaseIndexClicked()
 
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectAreaIndex(WeaponComp, CurrentlyEditingIndex);
+				return;
+			}
+		}
 		WeaponComp->Server_SelectEffectAreaIndex(CurrentlyEditingIndex);
 	}
 }
@@ -166,6 +223,14 @@ void UEffectAreaTalentWidget::OnDecreaseIndexClicked()
 
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectAreaIndex(WeaponComp, CurrentlyEditingIndex);
+				return;
+			}
+		}
 		WeaponComp->Server_SelectEffectAreaIndex(CurrentlyEditingIndex);
 	}
 }
@@ -174,6 +239,14 @@ void UEffectAreaTalentWidget::OnResetClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ResetEffectAreaTalents(WeaponComp, CurrentlyEditingIndex);
+				return;
+			}
+		}
 		WeaponComp->Server_ResetEffectAreaTalents(CurrentlyEditingIndex);
 	}
 }

@@ -2,6 +2,7 @@
 
 #include "WeaponTalentWidget.h"
 #include "WeaponAttributeSet.h"
+#include "WeaponHUDComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Characters/Unit/UnitBase.h"
 #include "Components/TextBlock.h"
@@ -134,6 +135,14 @@ void UWeaponTalentWidget::OnResetClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ResetCurrentWeaponTalents(WeaponComp);
+				return;
+			}
+		}
 		WeaponComp->Server_ResetCurrentWeaponTalents();
 	}
 }
@@ -152,11 +161,19 @@ float UWeaponTalentWidget::GetTalentPoints() const
 
 bool UWeaponTalentWidget::BuyUpgrade(FWeaponUpgrade Upgrade)
 {
-	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	UWeaponComponent* WeaponComp = GetWeaponComponent();
+	if (!WeaponComp) return false;
+
+	if (APlayerController* PC = GetOwningPlayer())
 	{
-		return WeaponComp->PurchaseUpgrade(Upgrade);
+		if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+		{
+			HUDComp->Server_PurchaseUpgrade(WeaponComp, Upgrade);
+			return true;
+		}
 	}
-	return false;
+	
+	return WeaponComp->PurchaseUpgrade(Upgrade);
 }
 
 void UWeaponTalentWidget::SetTargetUnit(AUnitBase* InUnit)

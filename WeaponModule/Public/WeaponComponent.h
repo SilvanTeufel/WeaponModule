@@ -183,7 +183,7 @@ protected:
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UPROPERTY(ReplicatedUsing = OnRep_AvailableWeapons, EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TArray<FWeaponData> AvailableWeapons;
 
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Weapon")
@@ -195,6 +195,9 @@ public:
 	UFUNCTION()
 	void OnRep_CurrentWeaponIndex();
 
+	UFUNCTION()
+	void OnRep_AvailableWeapons();
+
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
 	void Server_SwitchWeapon(int32 NewIndex);
 
@@ -203,6 +206,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	bool PurchaseUpgrade(FWeaponUpgrade Upgrade);
+
+	UFUNCTION(Server, Reliable)
+	void Server_PurchaseUpgrade(FWeaponUpgrade Upgrade);
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
 	void Server_SelectEffectTalent(int32 Index);

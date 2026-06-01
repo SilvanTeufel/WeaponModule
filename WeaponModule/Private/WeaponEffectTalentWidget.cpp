@@ -2,6 +2,7 @@
 
 #include "WeaponEffectTalentWidget.h"
 #include "WeaponAttributeSet.h"
+#include "WeaponHUDComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Characters/Unit/UnitBase.h"
 #include "Components/TextBlock.h"
@@ -86,17 +87,114 @@ void UWeaponEffectTalentWidget::NativeTick(const FGeometry& MyGeometry, float In
 	UpdateEffectUI(5, "Effect Six", EffectSixButton, EffectSixText);
 }
 
-void UWeaponEffectTalentWidget::OnEffectOneClicked() { if (UWeaponComponent* Comp = GetWeaponComponent()) Comp->Server_SelectEffectTalent(0); }
-void UWeaponEffectTalentWidget::OnEffectTwoClicked() { if (UWeaponComponent* Comp = GetWeaponComponent()) Comp->Server_SelectEffectTalent(1); }
-void UWeaponEffectTalentWidget::OnEffectThreeClicked() { if (UWeaponComponent* Comp = GetWeaponComponent()) Comp->Server_SelectEffectTalent(2); }
-void UWeaponEffectTalentWidget::OnEffectFourClicked() { if (UWeaponComponent* Comp = GetWeaponComponent()) Comp->Server_SelectEffectTalent(3); }
-void UWeaponEffectTalentWidget::OnEffectFiveClicked() { if (UWeaponComponent* Comp = GetWeaponComponent()) Comp->Server_SelectEffectTalent(4); }
-void UWeaponEffectTalentWidget::OnEffectSixClicked() { if (UWeaponComponent* Comp = GetWeaponComponent()) Comp->Server_SelectEffectTalent(5); }
+void UWeaponEffectTalentWidget::OnEffectOneClicked() 
+{ 
+	if (UWeaponComponent* Comp = GetWeaponComponent()) 
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectTalent(Comp, 0);
+				return;
+			}
+		}
+		Comp->Server_SelectEffectTalent(0); 
+	}
+}
+
+void UWeaponEffectTalentWidget::OnEffectTwoClicked() 
+{ 
+	if (UWeaponComponent* Comp = GetWeaponComponent()) 
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectTalent(Comp, 1);
+				return;
+			}
+		}
+		Comp->Server_SelectEffectTalent(1); 
+	}
+}
+
+void UWeaponEffectTalentWidget::OnEffectThreeClicked() 
+{ 
+	if (UWeaponComponent* Comp = GetWeaponComponent()) 
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectTalent(Comp, 2);
+				return;
+			}
+		}
+		Comp->Server_SelectEffectTalent(2); 
+	}
+}
+
+void UWeaponEffectTalentWidget::OnEffectFourClicked() 
+{ 
+	if (UWeaponComponent* Comp = GetWeaponComponent()) 
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectTalent(Comp, 3);
+				return;
+			}
+		}
+		Comp->Server_SelectEffectTalent(3); 
+	}
+}
+
+void UWeaponEffectTalentWidget::OnEffectFiveClicked() 
+{ 
+	if (UWeaponComponent* Comp = GetWeaponComponent()) 
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectTalent(Comp, 4);
+				return;
+			}
+		}
+		Comp->Server_SelectEffectTalent(4); 
+	}
+}
+
+void UWeaponEffectTalentWidget::OnEffectSixClicked() 
+{ 
+	if (UWeaponComponent* Comp = GetWeaponComponent()) 
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_SelectEffectTalent(Comp, 5);
+				return;
+			}
+		}
+		Comp->Server_SelectEffectTalent(5); 
+	}
+}
 
 void UWeaponEffectTalentWidget::OnResetClicked()
 {
 	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
 	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_ResetCurrentWeaponTalents(WeaponComp);
+				return;
+			}
+		}
 		WeaponComp->Server_ResetCurrentWeaponTalents();
 	}
 }
@@ -115,11 +213,19 @@ float UWeaponEffectTalentWidget::GetEffectTalentPoints() const
 
 bool UWeaponEffectTalentWidget::BuyUpgrade(FWeaponUpgrade Upgrade)
 {
-	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	UWeaponComponent* WeaponComp = GetWeaponComponent();
+	if (!WeaponComp) return false;
+
+	if (APlayerController* PC = GetOwningPlayer())
 	{
-		return WeaponComp->PurchaseUpgrade(Upgrade);
+		if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+		{
+			HUDComp->Server_PurchaseUpgrade(WeaponComp, Upgrade);
+			return true;
+		}
 	}
-	return false;
+	
+	return WeaponComp->PurchaseUpgrade(Upgrade);
 }
 
 void UWeaponEffectTalentWidget::SetTargetUnit(AUnitBase* InUnit)
