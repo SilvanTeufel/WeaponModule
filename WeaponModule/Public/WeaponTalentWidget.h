@@ -52,6 +52,9 @@ protected:
 	class UButton* UpgradeCooldownButton;
 
 	UPROPERTY(meta = (BindWidget))
+	class UButton* UpgradeFireRateButton;
+
+	UPROPERTY(meta = (BindWidget))
 	class UButton* UpgradeReloadButton;
 
 	UPROPERTY(meta = (BindWidget))
@@ -77,6 +80,9 @@ protected:
 	class UTextBlock* CooldownLevelText;
 
 	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* FireRateLevelText;
+
+	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* ReloadLevelText;
 
 	UPROPERTY(meta = (BindWidget))
@@ -97,6 +103,9 @@ protected:
 
 	UFUNCTION()
 	void OnUpgradeCooldownClicked();
+
+	UFUNCTION()
+	void OnUpgradeFireRateClicked();
 
 	UFUNCTION()
 	void OnUpgradeReloadClicked();

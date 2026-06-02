@@ -43,6 +43,12 @@ public:
 	void Server_ToggleEffectAreaTalent(UWeaponComponent* WeaponComp, int32 AreaIndex, int32 TalentIndex);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_InvestInEffectAreaRadius(UWeaponComponent* WeaponComp, int32 AreaIndex);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_InvestInEffectAreaDamage(UWeaponComponent* WeaponComp, int32 AreaIndex);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
 	void Server_ResetCurrentWeaponTalents(UWeaponComponent* WeaponComp);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")

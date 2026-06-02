@@ -18,6 +18,8 @@ void UEffectAreaTalentWidget::NativeConstruct()
 	if (EffectAreaFourButton) EffectAreaFourButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnEffectAreaFourClicked);
 	if (EffectAreaFiveButton) EffectAreaFiveButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnEffectAreaFiveClicked);
 	if (EffectAreaSixButton) EffectAreaSixButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnEffectAreaSixClicked);
+	if (IncreaseRadiusButton) IncreaseRadiusButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnIncreaseRadiusClicked);
+	if (IncreaseBaseDamageButton) IncreaseBaseDamageButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnIncreaseBaseDamageClicked);
 	if (IncreaseIndexButton) IncreaseIndexButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnIncreaseIndexClicked);
 	if (DecreaseIndexButton) DecreaseIndexButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnDecreaseIndexClicked);
 	if (ResetButton) ResetButton->OnClicked.AddDynamic(this, &UEffectAreaTalentWidget::OnResetClicked);
@@ -77,6 +79,9 @@ void UEffectAreaTalentWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 			SetTalentUI(EffectAreaFourButton, EffectAreaFourText, 3);
 			SetTalentUI(EffectAreaFiveButton, EffectAreaFiveText, 4);
 			SetTalentUI(EffectAreaSixButton, EffectAreaSixText, 5);
+
+			if (RadiusLevelText) RadiusLevelText->SetText(FText::AsNumber(AreaData.RadiusInvestments));
+			if (DamageLevelText) DamageLevelText->SetText(FText::AsNumber(AreaData.DamageInvestments));
 		}
 	}
 }
@@ -194,6 +199,38 @@ void UEffectAreaTalentWidget::OnEffectAreaSixClicked()
 			}
 		}
 		WeaponComp->Server_ToggleEffectAreaTalent(CurrentlyEditingIndex, 5);
+	}
+}
+
+void UEffectAreaTalentWidget::OnIncreaseRadiusClicked()
+{
+	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_InvestInEffectAreaRadius(WeaponComp, CurrentlyEditingIndex);
+				return;
+			}
+		}
+		WeaponComp->Server_InvestInEffectAreaRadius(CurrentlyEditingIndex);
+	}
+}
+
+void UEffectAreaTalentWidget::OnIncreaseBaseDamageClicked()
+{
+	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+			{
+				HUDComp->Server_InvestInEffectAreaDamage(WeaponComp, CurrentlyEditingIndex);
+				return;
+			}
+		}
+		WeaponComp->Server_InvestInEffectAreaDamage(CurrentlyEditingIndex);
 	}
 }
 

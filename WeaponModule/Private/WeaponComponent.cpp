@@ -124,12 +124,14 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 	WeaponAttributes->SetAttributeWeaponTalentPoints(Data.WeaponTalentPoints);
 	WeaponAttributes->SetDamageMultiplier(Data.DamageMultiplier);
 	WeaponAttributes->SetCooldownMultiplier(Data.CooldownMultiplier);
+	WeaponAttributes->SetFireRateMultiplier(Data.FireRateMultiplier);
 	WeaponAttributes->SetReloadSpeedMultiplier(Data.ReloadSpeedMultiplier);
 	WeaponAttributes->SetPierceExtraCount(Data.PierceExtraCount);
 	WeaponAttributes->SetProjectileExtraCount(Data.ProjectileExtraCount);
 
 	WeaponAttributes->SetDamageTalentLevel(Data.DamageTalentLevel);
 	WeaponAttributes->SetCooldownTalentLevel(Data.CooldownTalentLevel);
+	WeaponAttributes->SetFireRateTalentLevel(Data.FireRateTalentLevel);
 	WeaponAttributes->SetReloadSpeedTalentLevel(Data.ReloadSpeedTalentLevel);
 	WeaponAttributes->SetPierceTalentLevel(Data.PierceTalentLevel);
 	WeaponAttributes->SetProjectileTalentLevel(Data.ProjectileTalentLevel);
@@ -176,12 +178,14 @@ void UWeaponComponent::SaveAttributesToWeapon(int32 Index)
 	Data.WeaponTalentPoints = WeaponAttributes->GetWeaponTalentPoints();
 	Data.DamageMultiplier = WeaponAttributes->GetDamageMultiplier();
 	Data.CooldownMultiplier = WeaponAttributes->GetCooldownMultiplier();
+	Data.FireRateMultiplier = WeaponAttributes->GetFireRateMultiplier();
 	Data.ReloadSpeedMultiplier = WeaponAttributes->GetReloadSpeedMultiplier();
 	Data.PierceExtraCount = WeaponAttributes->GetPierceExtraCount();
 	Data.ProjectileExtraCount = WeaponAttributes->GetProjectileExtraCount();
 
 	Data.DamageTalentLevel = WeaponAttributes->GetDamageTalentLevel();
 	Data.CooldownTalentLevel = WeaponAttributes->GetCooldownTalentLevel();
+	Data.FireRateTalentLevel = WeaponAttributes->GetFireRateTalentLevel();
 	Data.ReloadSpeedTalentLevel = WeaponAttributes->GetReloadSpeedTalentLevel();
 	Data.PierceTalentLevel = WeaponAttributes->GetPierceTalentLevel();
 	Data.ProjectileTalentLevel = WeaponAttributes->GetProjectileTalentLevel();
@@ -258,7 +262,11 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
         // Formula: Benefit = 2^(Tier - 1)
         NewValue = (EffectiveTier > 0) ? FMath::Pow(2.0f, EffectiveTier - 1.0f) : 0.0f;
     }
-    else if (Upgrade.ModifierOp == EGameplayModOp::Additive)
+   	else if (Upgrade.Attribute == UWeaponAttributeSet::GetFireRateMultiplierAttribute())
+   	{
+   		NewValue = FMath::Pow(0.8f, NewLevel);
+   	}
+   	else if (Upgrade.ModifierOp == EGameplayModOp::Additive)
 	{
         // For others, we scale the modifier by the Tier
         // Damage, Pierce, MaxAmmo, MaxMagazines
@@ -379,6 +387,30 @@ void UWeaponComponent::Server_ToggleEffectAreaTalent_Implementation(int32 AreaIn
 	SyncAttributesFromWeapon(CurrentWeaponIndex);
 }
 
+void UWeaponComponent::Server_InvestInEffectAreaRadius_Implementation(int32 AreaIndex)
+{
+	if (!EffectAreas.IsValidIndex(AreaIndex)) return;
+	if (EffectAreaTalentPoints >= 1.0f)
+	{
+		EffectAreas[AreaIndex].RadiusInvestments++;
+		EffectAreas[AreaIndex].SpentPoints += 1.0f;
+		EffectAreaTalentPoints -= 1.0f;
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+	}
+}
+
+void UWeaponComponent::Server_InvestInEffectAreaDamage_Implementation(int32 AreaIndex)
+{
+	if (!EffectAreas.IsValidIndex(AreaIndex)) return;
+	if (EffectAreaTalentPoints >= 1.0f)
+	{
+		EffectAreas[AreaIndex].DamageInvestments++;
+		EffectAreas[AreaIndex].SpentPoints += 1.0f;
+		EffectAreaTalentPoints -= 1.0f;
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+	}
+}
+
 void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 {
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return;
@@ -390,6 +422,7 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	float InvestedPoints = 0.0f;
 	InvestedPoints += WeaponAttributes->GetDamageTalentLevel();
 	InvestedPoints += WeaponAttributes->GetCooldownTalentLevel();
+	InvestedPoints += WeaponAttributes->GetFireRateTalentLevel();
 	InvestedPoints += WeaponAttributes->GetReloadSpeedTalentLevel();
 	InvestedPoints += WeaponAttributes->GetPierceTalentLevel();
 	InvestedPoints += WeaponAttributes->GetProjectileTalentLevel();
@@ -403,6 +436,7 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	// Reset Normal Multipliers / Extra Counts to default values
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetDamageMultiplierAttribute(), 1.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetCooldownMultiplierAttribute(), 1.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetFireRateMultiplierAttribute(), 1.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetReloadSpeedMultiplierAttribute(), 1.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetPierceExtraCountAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetProjectileExtraCountAttribute(), 0.0f);
@@ -416,6 +450,7 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	// Reset Normal Levels to zero
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetDamageTalentLevelAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetCooldownTalentLevelAttribute(), 0.0f);
+	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetFireRateTalentLevelAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetReloadSpeedTalentLevelAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetPierceTalentLevelAttribute(), 0.0f);
 	ASC->SetNumericAttributeBase(UWeaponAttributeSet::GetProjectileTalentLevelAttribute(), 0.0f);
@@ -454,6 +489,8 @@ void UWeaponComponent::Server_ResetEffectAreaTalents_Implementation(int32 AreaIn
 		EffectAreaTalentPoints += AreaData.SpentPoints;
 		AreaData.SpentPoints = 0.0f;
 		AreaData.SelectedTalentIndices.Empty();
+		AreaData.RadiusInvestments = 0;
+		AreaData.DamageInvestments = 0;
 
 		SyncAttributesFromWeapon(CurrentWeaponIndex);
 	}

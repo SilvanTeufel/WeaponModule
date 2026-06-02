@@ -55,6 +55,7 @@ bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileCl
 	{
 		CalculatedDamage = OutWeaponData.BaseDamage * WeaponAttributes->GetDamageMultiplier();
 		OutMaxPiercedTargets = 1 + FMath::FloorToInt(WeaponAttributes->GetPierceExtraCount());
+		OutWeaponData.FireRate *= WeaponAttributes->GetFireRateMultiplier();
 	}
 
 	if (OutProjectileClass)
@@ -79,8 +80,8 @@ bool UShootAbility::GetEffectAreaInfo(int32 Index, FEffectAreaInfo& OutAreaInfo)
 	if (WeaponComp->EffectAreas.IsValidIndex(Index))
 	{
 		FEffectAreaData& AreaData = WeaponComp->EffectAreas[Index];
-		OutAreaInfo.Radius = AreaData.BaseRadius;
-		OutAreaInfo.Damage = AreaData.BaseDamage;
+		OutAreaInfo.Radius = AreaData.BaseRadius + (AreaData.RadiusInvestments * 50.f);
+		OutAreaInfo.Damage = AreaData.BaseDamage + (AreaData.DamageInvestments * 5.f);
 
 		if (AreaData.SelectedTalentIndices.IsValidIndex(0))
 		{

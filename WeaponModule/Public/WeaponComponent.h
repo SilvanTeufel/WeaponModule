@@ -69,6 +69,9 @@ struct FWeaponData
 	float CooldownMultiplier = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float FireRateMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float ReloadSpeedMultiplier = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
@@ -89,6 +92,9 @@ struct FWeaponData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float CooldownTalentLevel = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float FireRateTalentLevel = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float ReloadSpeedTalentLevel = 0.0f;
@@ -140,6 +146,12 @@ struct FEffectAreaData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	TArray<int32> SelectedTalentIndices;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	int32 RadiusInvestments = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	int32 DamageInvestments = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float SpentPoints = 0.0f;
@@ -228,8 +240,14 @@ public:
 	void SyncAttributesFromWeapon(int32 Index);
 	void SaveAttributesToWeapon(int32 Index);
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
 	void Server_ToggleEffectAreaTalent(int32 AreaIndex, int32 TalentIndex);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
+	void Server_InvestInEffectAreaRadius(int32 AreaIndex);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
+	void Server_InvestInEffectAreaDamage(int32 AreaIndex);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	int32 PointsPerLevel = 1;

@@ -91,6 +91,15 @@ public:
 	virtual void OnRep_CooldownMultiplier(const FGameplayAttributeData& OldCooldownMultiplier);
 	// CooldownMultiplier //
 
+	// FireRateMultiplier //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_FireRateMultiplier)
+	FGameplayAttributeData FireRateMultiplier;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, FireRateMultiplier);
+
+	UFUNCTION()
+	virtual void OnRep_FireRateMultiplier(const FGameplayAttributeData& OldFireRateMultiplier);
+	// FireRateMultiplier //
+
 	// PierceExtraCount //
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_PierceExtraCount)
 	FGameplayAttributeData PierceExtraCount;
@@ -135,6 +144,15 @@ public:
 	UFUNCTION()
 	virtual void OnRep_CooldownTalentLevel(const FGameplayAttributeData& OldCooldownTalentLevel);
 	// CooldownTalentLevel //
+
+	// FireRateTalentLevel //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_FireRateTalentLevel)
+	FGameplayAttributeData FireRateTalentLevel;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, FireRateTalentLevel);
+
+	UFUNCTION()
+	virtual void OnRep_FireRateTalentLevel(const FGameplayAttributeData& OldFireRateTalentLevel);
+	// FireRateTalentLevel //
 
 	// ReloadSpeedTalentLevel //
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_ReloadSpeedTalentLevel)

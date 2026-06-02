@@ -83,6 +83,12 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* EffectAreaSixButton;
 
+	UPROPERTY(meta = (BindWidget))
+	class UButton* IncreaseRadiusButton;
+
+	UPROPERTY(meta = (BindWidget))
+	class UButton* IncreaseBaseDamageButton;
+
 	// --- Text Display ---
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* EffectAreaOneText;
@@ -102,6 +108,12 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* EffectAreaSixText;
 
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* RadiusLevelText;
+
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* DamageLevelText;
+
 	// --- Button Handlers ---
 	UFUNCTION()
 	void OnEffectAreaOneClicked();
@@ -120,6 +132,12 @@ protected:
 
 	UFUNCTION()
 	void OnEffectAreaSixClicked();
+
+	UFUNCTION()
+	void OnIncreaseRadiusClicked();
+
+	UFUNCTION()
+	void OnIncreaseBaseDamageClicked();
 
 	// --- Index Handlers ---
 	UFUNCTION()

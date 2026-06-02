@@ -15,6 +15,7 @@ void UWeaponTalentWidget::NativeConstruct()
 
 	if (UpgradeDamageButton) UpgradeDamageButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeDamageClicked);
 	if (UpgradeCooldownButton) UpgradeCooldownButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeCooldownClicked);
+	if (UpgradeFireRateButton) UpgradeFireRateButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeFireRateClicked);
 	if (UpgradeReloadButton) UpgradeReloadButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeReloadClicked);
 	if (UpgradePierceButton) UpgradePierceButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradePierceClicked);
 	if (UpgradeProjectileButton) UpgradeProjectileButton->OnClicked.AddDynamic(this, &UWeaponTalentWidget::OnUpgradeProjectileClicked);
@@ -45,6 +46,7 @@ void UWeaponTalentWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 		{
 			if (DamageLevelText) DamageLevelText->SetText(FText::AsNumber(FMath::FloorToInt(Attrs->GetDamageTalentLevel())));
 			if (CooldownLevelText) CooldownLevelText->SetText(FText::AsNumber(FMath::FloorToInt(Attrs->GetCooldownTalentLevel())));
+			if (FireRateLevelText) FireRateLevelText->SetText(FText::AsNumber(FMath::FloorToInt(Attrs->GetFireRateTalentLevel())));
 			if (ReloadLevelText) ReloadLevelText->SetText(FText::AsNumber(FMath::FloorToInt(Attrs->GetReloadSpeedTalentLevel())));
 			if (PierceLevelText) PierceLevelText->SetText(FText::AsNumber(FMath::FloorToInt(Attrs->GetPierceTalentLevel())));
 			if (ProjectileLevelText) ProjectileLevelText->SetText(FText::AsNumber(FMath::FloorToInt(Attrs->GetProjectileTalentLevel())));
@@ -72,6 +74,17 @@ void UWeaponTalentWidget::OnUpgradeCooldownClicked()
 	Upgrade.Attribute = UWeaponAttributeSet::GetCooldownMultiplierAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetCooldownTalentLevelAttribute();
 	Upgrade.ModifierValue = 0.95f;
+	Upgrade.ModifierOp = EGameplayModOp::Multiplicitive;
+	BuyUpgrade(Upgrade);
+}
+
+void UWeaponTalentWidget::OnUpgradeFireRateClicked()
+{
+	FWeaponUpgrade Upgrade;
+	Upgrade.Name = FText::FromString("Fire Rate");
+	Upgrade.Attribute = UWeaponAttributeSet::GetFireRateMultiplierAttribute();
+	Upgrade.LevelAttribute = UWeaponAttributeSet::GetFireRateTalentLevelAttribute();
+	Upgrade.ModifierValue = 0.8f;
 	Upgrade.ModifierOp = EGameplayModOp::Multiplicitive;
 	BuyUpgrade(Upgrade);
 }

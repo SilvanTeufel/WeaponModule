@@ -49,6 +49,16 @@ void UWeaponHUDComponent::Server_ToggleEffectAreaTalent_Implementation(UWeaponCo
 	if (WeaponComp) WeaponComp->Server_ToggleEffectAreaTalent(AreaIndex, TalentIndex);
 }
 
+void UWeaponHUDComponent::Server_InvestInEffectAreaRadius_Implementation(UWeaponComponent* WeaponComp, int32 AreaIndex)
+{
+	if (WeaponComp) WeaponComp->Server_InvestInEffectAreaRadius(AreaIndex);
+}
+
+void UWeaponHUDComponent::Server_InvestInEffectAreaDamage_Implementation(UWeaponComponent* WeaponComp, int32 AreaIndex)
+{
+	if (WeaponComp) WeaponComp->Server_InvestInEffectAreaDamage(AreaIndex);
+}
+
 void UWeaponHUDComponent::Server_ResetCurrentWeaponTalents_Implementation(UWeaponComponent* WeaponComp)
 {
 	if (WeaponComp) WeaponComp->Server_ResetCurrentWeaponTalents();
