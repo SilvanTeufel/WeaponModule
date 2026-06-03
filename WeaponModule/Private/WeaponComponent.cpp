@@ -31,6 +31,7 @@ void UWeaponComponent::BeginPlay()
 
 	if (GetOwner()->HasAuthority())
 	{
+		LoadDataFromTables();
 		for (int32 i = 0; i < AvailableWeapons.Num(); ++i)
 		{
 			if (AvailableWeapons[i].Ammo == 0)
@@ -411,6 +412,39 @@ void UWeaponComponent::Server_InvestInEffectAreaDamage_Implementation(int32 Area
 	}
 }
 
+void UWeaponComponent::LoadDataFromTables()
+{
+	if (WeaponDataTable)
+	{
+		AvailableWeapons.Empty();
+		static const FString ContextString(TEXT("WeaponData"));
+		TArray<FWeaponData*> Rows;
+		WeaponDataTable->GetAllRows<FWeaponData>(ContextString, Rows);
+		for (const auto* Row : Rows)
+		{
+			if (Row)
+			{
+				AvailableWeapons.Add(*Row);
+			}
+		}
+	}
+
+	if (EffectAreaDataTable)
+	{
+		EffectAreas.Empty();
+		static const FString ContextString(TEXT("EffectAreaData"));
+		TArray<FEffectAreaData*> Rows;
+		EffectAreaDataTable->GetAllRows<FEffectAreaData>(ContextString, Rows);
+		for (const auto* Row : Rows)
+		{
+			if (Row)
+			{
+				EffectAreas.Add(*Row);
+			}
+		}
+	}
+}
+
 void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 {
 	if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return;
@@ -500,6 +534,7 @@ void UWeaponComponent::Server_ResetEffectAreaTalents_Implementation(int32 AreaIn
 void UWeaponComponent::OnRegister()
 {
 	Super::OnRegister();
+	LoadDataFromTables();
 	UpdatePreview();
 }
 
@@ -522,8 +557,11 @@ void UWeaponComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 		// Falls Einstellungen im Detail-Panel geändert wurden:
 		if (MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, PreviewWeaponIndex) || 
-			MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, AvailableWeapons))
+			MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, AvailableWeapons) ||
+			MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, WeaponDataTable) ||
+			MemberName == GET_MEMBER_NAME_CHECKED(UWeaponComponent, EffectAreaDataTable))
 		{
+			LoadDataFromTables();
 			UpdatePreview();
 		}
 	}

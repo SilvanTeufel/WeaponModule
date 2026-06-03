@@ -3,13 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
 #include "Actors/Projectile.h"
 #include "WeaponComponent.generated.h"
 
 USTRUCT(BlueprintType)
-struct FWeaponData
+struct FWeaponData : public FTableRowBase
 {
 	GENERATED_BODY()
 
@@ -128,7 +129,7 @@ struct FWeaponData
 };
 
 USTRUCT(BlueprintType)
-struct FEffectAreaData
+struct FEffectAreaData : public FTableRowBase
 {
 	GENERATED_BODY()
 
@@ -204,6 +205,12 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TArray<FEffectAreaData> EffectAreas;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UDataTable* WeaponDataTable;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UDataTable* EffectAreaDataTable;
+
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeaponIndex, BlueprintReadOnly, Category = "Weapon")
 	int32 CurrentWeaponIndex = 0;
 
@@ -248,6 +255,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
 	void Server_InvestInEffectAreaDamage(int32 AreaIndex);
+
+	void LoadDataFromTables();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	int32 PointsPerLevel = 1;
