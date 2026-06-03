@@ -82,6 +82,7 @@ bool UShootAbility::GetEffectAreaInfo(int32 Index, FEffectAreaInfo& OutAreaInfo)
 		FEffectAreaData& AreaData = WeaponComp->EffectAreas[Index];
 		OutAreaInfo.Radius = AreaData.BaseRadius + (AreaData.RadiusInvestments * 50.f);
 		OutAreaInfo.Damage = AreaData.BaseDamage + (AreaData.DamageInvestments * 5.f);
+		OutAreaInfo.Amount = AreaData.Amount;
 
 		if (AreaData.SelectedTalentIndices.IsValidIndex(0))
 		{
@@ -130,6 +131,17 @@ void UShootAbility::ModifyAmmo(float Amount)
 	}
 }
 
+void UShootAbility::ReduceEffectAreaAmount(int32 Index, float AmountToReduce)
+{
+	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	{
+		if (WeaponComp->EffectAreas.IsValidIndex(Index))
+		{
+			WeaponComp->EffectAreas[Index].Amount = FMath::Max(0.0f, WeaponComp->EffectAreas[Index].Amount - AmountToReduce);
+		}
+	}
+}
+
 
 int32 UShootAbility::GetProjectileCount() const
 {
@@ -158,12 +170,18 @@ void UShootAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const
 			UWeaponComponent* WeaponComp = GetWeaponComponent();
 			if (WeaponComp)
 			{
-				float Duration = WeaponComp->GetCurrentWeaponData().CooldownTime;
+				const FWeaponData& Data = WeaponComp->GetCurrentWeaponData();
+				float Duration = Data.CooldownTime;
+				if (Data.FireRate > 0.0f)
+				{
+					Duration /= Data.FireRate;
+				}
 
 				UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
 				if (WeaponAttributes)
 				{
 					Duration *= WeaponAttributes->GetCooldownMultiplier();
+					Duration *= WeaponAttributes->GetFireRateMultiplier();
 				}
 				
 				if (SpecHandle.Data->Def && SpecHandle.Data->Def->DurationPolicy != EGameplayEffectDurationType::Instant)
@@ -206,12 +224,18 @@ void UShootAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHand
 	UWeaponComponent* WeaponComp = GetWeaponComponent();
 	if (WeaponComp)
 	{
-		Duration = WeaponComp->GetCurrentWeaponData().CooldownTime;
+		const FWeaponData& Data = WeaponComp->GetCurrentWeaponData();
+		Duration = Data.CooldownTime;
+		if (Data.FireRate > 0.0f)
+		{
+			Duration /= Data.FireRate;
+		}
 
 		UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
 		if (WeaponAttributes)
 		{
 			Duration *= WeaponAttributes->GetCooldownMultiplier();
+			Duration *= WeaponAttributes->GetFireRateMultiplier();
 		}
 		
 		UE_LOG(LogTemp, Verbose, TEXT("[WeaponModule] ShootAbility: Querying Cooldown. Duration: %.2fs"), Duration);

@@ -7,6 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
 #include "Actors/Projectile.h"
+#include "Save/RTSSaveGame.h"
 #include "WeaponComponent.generated.h"
 
 USTRUCT(BlueprintType)
@@ -159,6 +160,9 @@ struct FEffectAreaData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
 	float SpentPoints = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Specialization")
+	float Amount = 0.0f;
 };
 
 USTRUCT(BlueprintType)
@@ -246,6 +250,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon")
 	void Server_ResetEffectAreaTalents(int32 AreaIndex);
+
+	void OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData);
+	void OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData);
 
 	void SyncAttributesFromWeapon(int32 Index);
 	void SaveAttributesToWeapon(int32 Index);

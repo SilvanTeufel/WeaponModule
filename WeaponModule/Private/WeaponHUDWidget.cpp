@@ -126,6 +126,17 @@ void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
 		{
 			WeaponIconImage->SetBrushFromTexture(CurrentWeapon.WeaponIcon);
 		}
+
+		if (EffectAreaAmount0 && WeaponComp->EffectAreas.IsValidIndex(0)) 
+			EffectAreaAmount0->SetText(FText::AsNumber(FMath::FloorToInt(WeaponComp->EffectAreas[0].Amount)));
+		if (EffectAreaAmount1 && WeaponComp->EffectAreas.IsValidIndex(1)) 
+			EffectAreaAmount1->SetText(FText::AsNumber(FMath::FloorToInt(WeaponComp->EffectAreas[1].Amount)));
+		if (EffectAreaAmount2 && WeaponComp->EffectAreas.IsValidIndex(2)) 
+			EffectAreaAmount2->SetText(FText::AsNumber(FMath::FloorToInt(WeaponComp->EffectAreas[2].Amount)));
+		if (EffectAreaAmount3 && WeaponComp->EffectAreas.IsValidIndex(3)) 
+			EffectAreaAmount3->SetText(FText::AsNumber(FMath::FloorToInt(WeaponComp->EffectAreas[3].Amount)));
+		if (EffectAreaAmount4 && WeaponComp->EffectAreas.IsValidIndex(4)) 
+			EffectAreaAmount4->SetText(FText::AsNumber(FMath::FloorToInt(WeaponComp->EffectAreas[4].Amount)));
 	}
 }
 

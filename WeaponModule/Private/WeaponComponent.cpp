@@ -11,6 +11,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/Actor.h"
+#include "System/GameSaveSubsystem.h"
+#include "JsonObjectConverter.h"
 
 UWeaponComponent::UWeaponComponent()
 {
@@ -66,6 +68,15 @@ void UWeaponComponent::BeginPlay()
 			{
 				SyncAttributesFromWeapon(CurrentWeaponIndex);
 			}
+		}
+	}
+
+	if (UGameInstance* GI = GetOwner()->GetGameInstance())
+	{
+		if (UGameSaveSubsystem* SaveSub = GI->GetSubsystem<UGameSaveSubsystem>())
+		{
+			SaveSub->OnUnitSave.AddUObject(this, &UWeaponComponent::OnUnitSave);
+			SaveSub->OnUnitLoad.AddUObject(this, &UWeaponComponent::OnUnitLoad);
 		}
 	}
 }
@@ -528,6 +539,60 @@ void UWeaponComponent::Server_ResetEffectAreaTalents_Implementation(int32 AreaIn
 
 		SyncAttributesFromWeapon(CurrentWeaponIndex);
 	}
+}
+
+void UWeaponComponent::OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData)
+{
+	if (Unit != GetOwner()) return;
+
+	SaveAttributesToWeapon(CurrentWeaponIndex);
+
+	auto SerializeArray = [&](const auto& Array, const FString& Key)
+	{
+		TArray<TSharedPtr<FJsonValue>> JsonArray;
+		for (const auto& Item : Array)
+		{
+			TSharedPtr<FJsonObject> JsonObj = FJsonObjectConverter::UStructToJsonObject(Item);
+			JsonArray.Add(MakeShared<FJsonValueObject>(JsonObj));
+		}
+		FString JsonString;
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+		FJsonSerializer::Serialize(JsonArray, Writer);
+		SaveData.SerializedModuleData.Add(Key, JsonString);
+	};
+
+	SerializeArray(AvailableWeapons, TEXT("AvailableWeapons"));
+	SerializeArray(EffectAreas, TEXT("EffectAreas"));
+
+	SaveData.SerializedModuleData.Add(TEXT("CurrentWeaponIndex"), FString::FromInt(CurrentWeaponIndex));
+	SaveData.SerializedModuleData.Add(TEXT("EffectAreaTalentPoints"), FString::SanitizeFloat(EffectAreaTalentPoints));
+}
+
+void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
+{
+	if (Unit != GetOwner()) return;
+
+	if (FString* WeaponsJson = SaveData.SerializedModuleData.Find(TEXT("AvailableWeapons")))
+	{
+		FJsonObjectConverter::JsonArrayStringToUStruct<FWeaponData>(*WeaponsJson, &AvailableWeapons);
+	}
+
+	if (FString* EffectAreasJson = SaveData.SerializedModuleData.Find(TEXT("EffectAreas")))
+	{
+		FJsonObjectConverter::JsonArrayStringToUStruct<FEffectAreaData>(*EffectAreasJson, &EffectAreas);
+	}
+
+	if (FString* IndexStr = SaveData.SerializedModuleData.Find(TEXT("CurrentWeaponIndex")))
+	{
+		CurrentWeaponIndex = FCString::Atoi(**IndexStr);
+	}
+
+	if (FString* PointsStr = SaveData.SerializedModuleData.Find(TEXT("EffectAreaTalentPoints")))
+	{
+		EffectAreaTalentPoints = FCString::Atof(**PointsStr);
+	}
+
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
 }
 
 #if WITH_EDITOR

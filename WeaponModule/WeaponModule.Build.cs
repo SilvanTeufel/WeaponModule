@@ -37,7 +37,9 @@ public class WeaponModule : ModuleRules
 				"MassSpawner",
 				"NetCore",
 				"UMG",
-				"MassActors"
+				"MassActors",
+				"Json",
+				"JsonUtilities"
 			}
 			);
 			

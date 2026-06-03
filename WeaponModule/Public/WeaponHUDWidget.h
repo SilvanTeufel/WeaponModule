@@ -92,5 +92,17 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* MagazinesText;
 
+	// Effect Areas
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* EffectAreaAmount0;
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* EffectAreaAmount1;
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* EffectAreaAmount2;
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* EffectAreaAmount3;
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* EffectAreaAmount4;
+
 	class UAbilitySystemComponent* GetSelectedUnitASC() const;
 };
