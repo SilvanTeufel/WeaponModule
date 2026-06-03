@@ -130,6 +130,7 @@ void UShootAbility::ModifyAmmo(float Amount)
 	}
 }
 
+
 int32 UShootAbility::GetProjectileCount() const
 {
 	UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();

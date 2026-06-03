@@ -30,6 +30,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void ModifyAmmo(float Amount);
 
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	int32 GetProjectileCount() const;
 
