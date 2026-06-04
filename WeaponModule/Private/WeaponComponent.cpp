@@ -155,14 +155,17 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 	WeaponAttributes->SetAttributeSelectedEffectIndex2(Data.SelectedEffectIndex2);
 	WeaponAttributes->SetAttributeSelectedEffectIndex3(Data.SelectedEffectIndex3);
 
-	if (ALevelUnit* LevelUnit = Cast<ALevelUnit>(GetOwner())) {
-		int32 LevelPoints = LevelUnit->GetCharacterLevel() / LevelDivisor;
-		float TotalPoints = EffectAreaTalentPoints + (float)LevelPoints;
-		WeaponAttributes->SetAttributeEffectAreaTalentPoints(TotalPoints);
-	}
-	else
-	{
-		WeaponAttributes->SetAttributeEffectAreaTalentPoints(EffectAreaTalentPoints);
+	if (AAbilityUnit* Unit = Cast<AAbilityUnit>(GetOwner())) {
+		if (ALevelUnit* LevelUnit = Cast<ALevelUnit>(Unit)) {
+			int32 LevelPoints = LevelUnit->GetCharacterLevel() / LevelDivisor;
+			float TotalPoints = EffectAreaTalentPoints + (float)LevelPoints;
+			WeaponAttributes->SetAttributeEffectAreaTalentPoints(TotalPoints);
+		}
+		else
+		{
+			WeaponAttributes->SetAttributeEffectAreaTalentPoints(EffectAreaTalentPoints);
+		}
+		Unit->ContinuousAttackDuration = Data.FireRate * Data.FireRateMultiplier;
 	}
 }
 
