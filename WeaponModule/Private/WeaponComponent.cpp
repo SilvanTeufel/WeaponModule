@@ -592,6 +592,46 @@ void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
 		EffectAreaTalentPoints = FCString::Atof(**PointsStr);
 	}
 
+	// Restore assets from DataTables since JsonObjectConverter doesn't handle pointers/classes
+	if (WeaponDataTable)
+	{
+		TArray<FWeaponData*> AllRows;
+		static const FString ContextString(TEXT("WeaponRestore"));
+		WeaponDataTable->GetAllRows<FWeaponData>(ContextString, AllRows);
+		for (FWeaponData& Weapon : AvailableWeapons)
+		{
+			for (const FWeaponData* Row : AllRows)
+			{
+				if (Row && Row->WeaponTag == Weapon.WeaponTag)
+				{
+					Weapon.WeaponMesh = Row->WeaponMesh;
+					Weapon.WeaponIcon = Row->WeaponIcon;
+					Weapon.ProjectileClass = Row->ProjectileClass;
+					Weapon.EffectTalents = Row->EffectTalents;
+					break;
+				}
+			}
+		}
+	}
+
+	if (EffectAreaDataTable)
+	{
+		TArray<FEffectAreaData*> AllAreaRows;
+		static const FString ContextString(TEXT("AreaRestore"));
+		EffectAreaDataTable->GetAllRows<FEffectAreaData>(ContextString, AllAreaRows);
+		for (FEffectAreaData& Area : EffectAreas)
+		{
+			for (const FEffectAreaData* Row : AllAreaRows)
+			{
+				if (Row && Row->Name == Area.Name)
+				{
+					Area.PossibleEffects = Row->PossibleEffects;
+					break;
+				}
+			}
+		}
+	}
+
 	SyncAttributesFromWeapon(CurrentWeaponIndex);
 }
 
