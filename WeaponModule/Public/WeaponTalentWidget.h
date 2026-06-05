@@ -97,6 +97,31 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* MagazinesLevelText;
 
+	// --- Talent Modifier Values ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float DamageModifierValue = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float CooldownModifierValue = 0.95f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float FireRateModifierValue = 0.85f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float ReloadModifierValue = 0.95f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float PierceModifierValue = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float ProjectileModifierValue = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float AmmoModifierValue = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Talents")
+	float MagazinesModifierValue = 1.0f;
+
 	// --- Button Handlers ---
 	UFUNCTION()
 	void OnUpgradeDamageClicked();

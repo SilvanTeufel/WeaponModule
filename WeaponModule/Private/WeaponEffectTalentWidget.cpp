@@ -56,7 +56,7 @@ void UWeaponEffectTalentWidget::NativeTick(const FGeometry& MyGeometry, float In
 			FString EffectName = Data.EffectTalents[Index] ? Data.EffectTalents[Index]->GetName() : FString("None");
 			EffectName.RemoveFromEnd("_C");
 			
-			float Cost = (float)Index + 1.0f;
+			float Cost = ((float)Index + 1.0f) * WeaponComp->ProjectileEffectCostMultiplier;
 			bool bCanAfford = CurrentPoints >= Cost;
 			bool bIsSelected = (SelectedIndex1 == Index || SelectedIndex2 == Index || SelectedIndex3 == Index);
 			float InvestedPoints = bIsSelected ? Cost : 0.0f;
@@ -69,7 +69,7 @@ void UWeaponEffectTalentWidget::NativeTick(const FGeometry& MyGeometry, float In
 			}
 			else
 			{
-				Button->SetIsEnabled(bCanAfford && SelectionCount < 3);
+				Button->SetIsEnabled(bCanAfford && SelectionCount < WeaponComp->MaxProjectileEffects);
 			}
 		}
 		else

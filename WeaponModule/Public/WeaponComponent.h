@@ -286,6 +286,26 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	float EffectAreaTalentPoints = 0.0f;
 
+	// Projektil-Effekte
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float ProjectileEffectCostMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	int32 MaxProjectileEffects = 3;
+
+	// Area-Effekte
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float AreaRadiusUpgradeCost = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float AreaDamageUpgradeCost = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	float AreaEffectToggleCost = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
+	int32 MaxAreaEffects = 3;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = "Preview")
 	TObjectPtr<UStaticMeshComponent> WeaponPreview;

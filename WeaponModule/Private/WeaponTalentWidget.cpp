@@ -62,7 +62,7 @@ void UWeaponTalentWidget::OnUpgradeDamageClicked()
 	Upgrade.Name = FText::FromString("Damage");
 	Upgrade.Attribute = UWeaponAttributeSet::GetDamageMultiplierAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetDamageTalentLevelAttribute();
-	Upgrade.ModifierValue = 0.1f;
+	Upgrade.ModifierValue = DamageModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Additive;
 	BuyUpgrade(Upgrade);
 }
@@ -73,7 +73,7 @@ void UWeaponTalentWidget::OnUpgradeCooldownClicked()
 	Upgrade.Name = FText::FromString("Cooldown");
 	Upgrade.Attribute = UWeaponAttributeSet::GetCooldownMultiplierAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetCooldownTalentLevelAttribute();
-	Upgrade.ModifierValue = 0.95f;
+	Upgrade.ModifierValue = CooldownModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Multiplicitive;
 	BuyUpgrade(Upgrade);
 }
@@ -84,7 +84,7 @@ void UWeaponTalentWidget::OnUpgradeFireRateClicked()
 	Upgrade.Name = FText::FromString("Fire Rate");
 	Upgrade.Attribute = UWeaponAttributeSet::GetFireRateMultiplierAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetFireRateTalentLevelAttribute();
-	Upgrade.ModifierValue = 0.8f;
+	Upgrade.ModifierValue = FireRateModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Multiplicitive;
 	BuyUpgrade(Upgrade);
 }
@@ -95,7 +95,7 @@ void UWeaponTalentWidget::OnUpgradeReloadClicked()
 	Upgrade.Name = FText::FromString("Reload Speed");
 	Upgrade.Attribute = UWeaponAttributeSet::GetReloadSpeedMultiplierAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetReloadSpeedTalentLevelAttribute();
-	Upgrade.ModifierValue = 0.95f;
+	Upgrade.ModifierValue = ReloadModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Multiplicitive;
 	BuyUpgrade(Upgrade);
 }
@@ -106,7 +106,7 @@ void UWeaponTalentWidget::OnUpgradePierceClicked()
 	Upgrade.Name = FText::FromString("Pierce");
 	Upgrade.Attribute = UWeaponAttributeSet::GetPierceExtraCountAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetPierceTalentLevelAttribute();
-	Upgrade.ModifierValue = 1.0f;
+	Upgrade.ModifierValue = PierceModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Additive;
 	BuyUpgrade(Upgrade);
 }
@@ -117,7 +117,7 @@ void UWeaponTalentWidget::OnUpgradeProjectileClicked()
 	Upgrade.Name = FText::FromString("Multi-Shot");
 	Upgrade.Attribute = UWeaponAttributeSet::GetProjectileExtraCountAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetProjectileTalentLevelAttribute();
-	Upgrade.ModifierValue = 1.0f;
+	Upgrade.ModifierValue = ProjectileModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Additive;
 	BuyUpgrade(Upgrade);
 }
@@ -128,7 +128,7 @@ void UWeaponTalentWidget::OnUpgradeAmmoClicked()
 	Upgrade.Name = FText::FromString("Max Ammo");
 	Upgrade.Attribute = UWeaponAttributeSet::GetMaxAmmoAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetMaxAmmoTalentLevelAttribute();
-	Upgrade.ModifierValue = 5.0f;
+	Upgrade.ModifierValue = AmmoModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Additive;
 	BuyUpgrade(Upgrade);
 }
@@ -139,7 +139,7 @@ void UWeaponTalentWidget::OnUpgradeMagazinesClicked()
 	Upgrade.Name = FText::FromString("Magazines");
 	Upgrade.Attribute = UWeaponAttributeSet::GetMaxMagazinesAttribute();
 	Upgrade.LevelAttribute = UWeaponAttributeSet::GetAmountMagazinesTalentLevelAttribute();
-	Upgrade.ModifierValue = 1.0f;
+	Upgrade.ModifierValue = MagazinesModifierValue;
 	Upgrade.ModifierOp = EGameplayModOp::Additive;
 	BuyUpgrade(Upgrade);
 }

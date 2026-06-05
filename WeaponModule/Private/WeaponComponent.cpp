@@ -274,12 +274,12 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
     if (Upgrade.Attribute == UWeaponAttributeSet::GetProjectileExtraCountAttribute())
     {
         // Special logic for Projectiles: 1->1, 3->2, 7->4
-        // Formula: Benefit = 2^(Tier - 1)
-        NewValue = (EffectiveTier > 0) ? FMath::Pow(2.0f, EffectiveTier - 1.0f) : 0.0f;
+        // Formula: Benefit = ModifierValue^(Tier - 1)
+        NewValue = (EffectiveTier > 0) ? FMath::Pow(Upgrade.ModifierValue, EffectiveTier - 1.0f) : 0.0f;
     }
    	else if (Upgrade.Attribute == UWeaponAttributeSet::GetFireRateMultiplierAttribute())
    	{
-   		NewValue = FMath::Pow(0.9f, EffectiveTier);
+   		NewValue = FMath::Pow(Upgrade.ModifierValue, EffectiveTier);
    	}
    	else if (Upgrade.ModifierOp == EGameplayModOp::Additive)
 	{
@@ -346,7 +346,7 @@ void UWeaponComponent::Server_SelectEffectTalent_Implementation(int32 Index)
 	// Check if already selected
 	if (Data.SelectedEffectIndex1 == Index || Data.SelectedEffectIndex2 == Index || Data.SelectedEffectIndex3 == Index) return;
 
-	float Cost = (float)Index + 1.0f;
+	float Cost = ((float)Index + 1.0f) * ProjectileEffectCostMultiplier;
 	float AvailablePoints = WeaponAttributes->GetEffectTalentPoints();
 
 	if (AvailablePoints >= Cost)
@@ -386,16 +386,16 @@ void UWeaponComponent::Server_ToggleEffectAreaTalent_Implementation(int32 AreaIn
 	if (AreaData.SelectedTalentIndices.Contains(TalentIndex))
 	{
 		AreaData.SelectedTalentIndices.Remove(TalentIndex);
-		AreaData.SpentPoints -= 1.0f;
-		EffectAreaTalentPoints += 1.0f;
+		AreaData.SpentPoints -= AreaEffectToggleCost;
+		EffectAreaTalentPoints += AreaEffectToggleCost;
 	}
 	else
 	{
-		if (AreaData.SelectedTalentIndices.Num() < 3 && EffectAreaTalentPoints >= 1.0f)
+		if (AreaData.SelectedTalentIndices.Num() < MaxAreaEffects && EffectAreaTalentPoints >= AreaEffectToggleCost)
 		{
 			AreaData.SelectedTalentIndices.Add(TalentIndex);
-			AreaData.SpentPoints += 1.0f;
-			EffectAreaTalentPoints -= 1.0f;
+			AreaData.SpentPoints += AreaEffectToggleCost;
+			EffectAreaTalentPoints -= AreaEffectToggleCost;
 		}
 	}
 
@@ -406,11 +406,11 @@ void UWeaponComponent::Server_ToggleEffectAreaTalent_Implementation(int32 AreaIn
 void UWeaponComponent::Server_InvestInEffectAreaRadius_Implementation(int32 AreaIndex)
 {
 	if (!EffectAreas.IsValidIndex(AreaIndex)) return;
-	if (EffectAreaTalentPoints >= 1.0f)
+	if (EffectAreaTalentPoints >= AreaRadiusUpgradeCost)
 	{
 		EffectAreas[AreaIndex].RadiusInvestments++;
-		EffectAreas[AreaIndex].SpentPoints += 1.0f;
-		EffectAreaTalentPoints -= 1.0f;
+		EffectAreas[AreaIndex].SpentPoints += AreaRadiusUpgradeCost;
+		EffectAreaTalentPoints -= AreaRadiusUpgradeCost;
 		SyncAttributesFromWeapon(CurrentWeaponIndex);
 	}
 }
@@ -418,11 +418,11 @@ void UWeaponComponent::Server_InvestInEffectAreaRadius_Implementation(int32 Area
 void UWeaponComponent::Server_InvestInEffectAreaDamage_Implementation(int32 AreaIndex)
 {
 	if (!EffectAreas.IsValidIndex(AreaIndex)) return;
-	if (EffectAreaTalentPoints >= 1.0f)
+	if (EffectAreaTalentPoints >= AreaDamageUpgradeCost)
 	{
 		EffectAreas[AreaIndex].DamageInvestments++;
-		EffectAreas[AreaIndex].SpentPoints += 1.0f;
-		EffectAreaTalentPoints -= 1.0f;
+		EffectAreas[AreaIndex].SpentPoints += AreaDamageUpgradeCost;
+		EffectAreaTalentPoints -= AreaDamageUpgradeCost;
 		SyncAttributesFromWeapon(CurrentWeaponIndex);
 	}
 }

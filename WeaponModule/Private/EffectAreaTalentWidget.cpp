@@ -59,17 +59,23 @@ void UEffectAreaTalentWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 		if (WeaponComp->EffectAreas.IsValidIndex(CurrentlyEditingIndex))
 		{
 			FEffectAreaData& AreaData = WeaponComp->EffectAreas[CurrentlyEditingIndex];
+			float CurrentPoints = GetEffectAreaTalentPoints();
 			
 			auto SetTalentUI = [&](UButton* Button, UTextBlock* TextBlock, int32 Index) {
+				if (!Button) return;
 				if (AreaData.PossibleEffects.IsValidIndex(Index)) {
 					UClass* GEClass = AreaData.PossibleEffects[Index];
 					if (TextBlock) TextBlock->SetText(FText::FromString(GEClass ? GEClass->GetName() : TEXT("Empty")));
 					
 					bool bSelected = AreaData.SelectedTalentIndices.Contains(Index);
-					if (Button) Button->SetBackgroundColor(bSelected ? FLinearColor::Green : FLinearColor::Gray);
+					Button->SetBackgroundColor(bSelected ? FLinearColor::Green : FLinearColor::Gray);
+					
+					bool bCanToggle = bSelected || (CurrentPoints >= WeaponComp->AreaEffectToggleCost && AreaData.SelectedTalentIndices.Num() < WeaponComp->MaxAreaEffects);
+					Button->SetIsEnabled(bCanToggle);
 				} else {
 					if (TextBlock) TextBlock->SetText(FText::FromString(TEXT("Locked")));
-					if (Button) Button->SetBackgroundColor(FLinearColor::Black);
+					Button->SetBackgroundColor(FLinearColor::Black);
+					Button->SetIsEnabled(false);
 				}
 			};
 
@@ -82,6 +88,9 @@ void UEffectAreaTalentWidget::NativeTick(const FGeometry& MyGeometry, float InDe
 
 			if (RadiusLevelText) RadiusLevelText->SetText(FText::AsNumber(AreaData.RadiusInvestments));
 			if (DamageLevelText) DamageLevelText->SetText(FText::AsNumber(AreaData.DamageInvestments));
+
+			if (IncreaseRadiusButton) IncreaseRadiusButton->SetIsEnabled(CurrentPoints >= WeaponComp->AreaRadiusUpgradeCost);
+			if (IncreaseBaseDamageButton) IncreaseBaseDamageButton->SetIsEnabled(CurrentPoints >= WeaponComp->AreaDamageUpgradeCost);
 		}
 	}
 }
