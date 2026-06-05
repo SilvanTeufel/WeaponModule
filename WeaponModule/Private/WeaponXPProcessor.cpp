@@ -43,7 +43,7 @@ void UWeaponXPProcessor::Execute(FMassEntityManager& EntityManager, FMassExecuti
 	TArray<FMassEntityHandle> DeadEntities;
 
 	// 1. Collect all newly dead entities
-	NewlyDeadQuery.ForEachEntityChunk(EntityManager, Context, ([&](FMassExecutionContext& ChunkContext)
+	NewlyDeadQuery.ForEachEntityChunk(Context, ([&](FMassExecutionContext& ChunkContext)
 	{
 		const auto Transforms = ChunkContext.GetFragmentView<FTransformFragment>();
 		const auto Stats = ChunkContext.GetFragmentView<FMassCombatStatsFragment>();
@@ -59,7 +59,7 @@ void UWeaponXPProcessor::Execute(FMassEntityManager& EntityManager, FMassExecuti
 	if (DeadEntities.Num() == 0) return;
 
 	// 2. Distribute XP to nearby earner units (only those with WeaponComponent)
-	EarnerQuery.ForEachEntityChunk(EntityManager, Context, ([&](FMassExecutionContext& ChunkContext)
+	EarnerQuery.ForEachEntityChunk(Context, ([&](FMassExecutionContext& ChunkContext)
 	{
 		const auto Transforms = ChunkContext.GetFragmentView<FTransformFragment>();
 		const auto Stats = ChunkContext.GetFragmentView<FMassCombatStatsFragment>();
