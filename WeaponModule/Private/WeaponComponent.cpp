@@ -279,7 +279,7 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
     }
    	else if (Upgrade.Attribute == UWeaponAttributeSet::GetFireRateMultiplierAttribute())
    	{
-   		NewValue = FMath::Pow(0.8f, NewLevel);
+   		NewValue = FMath::Pow(0.9f, EffectiveTier);
    	}
    	else if (Upgrade.ModifierOp == EGameplayModOp::Additive)
 	{
@@ -323,6 +323,7 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 	}
 	
 	SaveAttributesToWeapon(CurrentWeaponIndex);
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Purchased upgrade %s. New Level: %.0f, Tier: %.0f, New Value: %.2f"), 
 		*Upgrade.Name.ToString(), NewLevel, EffectiveTier, NewValue);
@@ -525,6 +526,7 @@ void UWeaponComponent::Server_ResetCurrentWeaponTalents_Implementation()
 	}
 
 	SaveAttributesToWeapon(CurrentWeaponIndex);
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Reset talents for current weapon. Refunded %.1f normal points."), InvestedPoints);
 }
