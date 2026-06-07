@@ -638,6 +638,8 @@ void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
 					Weapon.WeaponIcon = Row->WeaponIcon;
 					Weapon.ProjectileClass = Row->ProjectileClass;
 					Weapon.EffectTalents = Row->EffectTalents;
+					Weapon.SocketName = Row->SocketName;
+					Weapon.Offset = Row->Offset;
 					break;
 				}
 			}
@@ -656,6 +658,8 @@ void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
 				if (Row && Row->Name == Area.Name)
 				{
 					Area.PossibleEffects = Row->PossibleEffects;
+					Area.BaseRadius = Row->BaseRadius;
+					Area.BaseDamage = Row->BaseDamage;
 					break;
 				}
 			}
