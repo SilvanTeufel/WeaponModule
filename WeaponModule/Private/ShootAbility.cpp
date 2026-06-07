@@ -3,6 +3,7 @@
 #include "ShootAbility.h"
 #include "WeaponAttributeSet.h"
 #include "Characters/Unit/UnitBase.h"
+#include "Characters/Unit/AbilityUnit.h"
 #include "AbilitySystemComponent.h"
 #include "MassEntityTypes.h"
 #include "Actors/Projectile.h"
@@ -172,18 +173,18 @@ void UShootAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const
 			{
 				const FWeaponData& Data = WeaponComp->GetCurrentWeaponData();
 				float Duration = Data.CooldownTime;
-				if (Data.FireRate > 0.0f)
-				{
-					Duration /= Data.FireRate;
-				}
 
 				UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
 				if (WeaponAttributes)
 				{
 					Duration *= WeaponAttributes->GetCooldownMultiplier();
-					Duration *= WeaponAttributes->GetFireRateMultiplier();
 				}
 				
+				if (Data.WeaponTag.IsValid())
+				{
+					SpecHandle.Data->DynamicGrantedTags.AddTag(Data.WeaponTag);
+				}
+
 				if (SpecHandle.Data->Def && SpecHandle.Data->Def->DurationPolicy != EGameplayEffectDurationType::Instant)
 				{
 					SpecHandle.Data->SetDuration(Duration, true);
@@ -219,25 +220,121 @@ void UShootAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const
 
 void UShootAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& Duration) const
 {
-	Super::GetCooldownTimeRemainingAndDuration(Handle, ActorInfo, TimeRemaining, Duration);
-	
-	UWeaponComponent* WeaponComp = GetWeaponComponent();
-	if (WeaponComp)
+	TimeRemaining = 0.f;
+	Duration = 0.f;
+
+	if (!ActorInfo || !ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		return;
+	}
+
+	UAbilitySystemComponent* const ASC = ActorInfo->AbilitySystemComponent.Get();
+	AActor* AvatarActor = ActorInfo->AvatarActor.Get();
+	UWeaponComponent* WeaponComp = AvatarActor ? AvatarActor->FindComponentByClass<UWeaponComponent>() : nullptr;
+
+	if (ASC && WeaponComp)
 	{
 		const FWeaponData& Data = WeaponComp->GetCurrentWeaponData();
 		Duration = Data.CooldownTime;
-		if (Data.FireRate > 0.0f)
-		{
-			Duration /= Data.FireRate;
-		}
 
-		UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
+		UWeaponAttributeSet* WeaponAttributes = const_cast<UWeaponAttributeSet*>(ASC->GetSet<UWeaponAttributeSet>());
 		if (WeaponAttributes)
 		{
 			Duration *= WeaponAttributes->GetCooldownMultiplier();
-			Duration *= WeaponAttributes->GetFireRateMultiplier();
 		}
+
+		FGameplayTag WeaponTag = Data.WeaponTag;
+		if (WeaponTag.IsValid())
+		{
+			// Wir suchen gezielt nach Effekten, die das Tag dieser spezifischen Waffe haben
+			FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(WeaponTag));
+			TArray<float> TimesRemaining = ASC->GetActiveEffectsTimeRemaining(Query);
+
+			for (float T : TimesRemaining)
+			{
+				if (T > TimeRemaining) TimeRemaining = T;
+			}
+		}
+
+		UE_LOG(LogTemp, Verbose, TEXT("[WeaponModule] ShootAbility: Querying Cooldown for %s. Remaining: %.2fs"), 
+			*WeaponTag.ToString(), TimeRemaining);
+	}
+	else
+	{
+		Super::GetCooldownTimeRemainingAndDuration(Handle, ActorInfo, TimeRemaining, Duration);
+	}
+}
+
+const FGameplayTagContainer* UShootAbility::GetCooldownTags() const
+{
+	TempCooldownTags.Reset();
+	if (IsInstantiated())
+	{
+		if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+		{
+			FGameplayTag WeaponTag = WeaponComp->GetCurrentWeaponData().WeaponTag;
+			if (WeaponTag.IsValid())
+			{
+				TempCooldownTags.AddTag(WeaponTag);
+				return &TempCooldownTags; // NUR das Waffentag zurückgeben, Super ignorieren
+			}
+		}
+	}
+	return Super::GetCooldownTags();
+}
+
+bool UShootAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		AActor* AvatarActor = ActorInfo->AvatarActor.Get();
+		UWeaponComponent* WeaponComp = AvatarActor ? AvatarActor->FindComponentByClass<UWeaponComponent>() : nullptr;
 		
-		UE_LOG(LogTemp, Verbose, TEXT("[WeaponModule] ShootAbility: Querying Cooldown. Duration: %.2fs"), Duration);
+		if (WeaponComp)
+		{
+			FGameplayTag WeaponTag = WeaponComp->GetCurrentWeaponData().WeaponTag;
+			if (WeaponTag.IsValid())
+			{
+				bool bHasTag = ActorInfo->AbilitySystemComponent->HasMatchingGameplayTag(WeaponTag);
+				
+				// Debug Log für den Cooldown-Status
+				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] CheckCooldown: Waffe %s, Cooldown aktiv: %s"), 
+					*WeaponTag.ToString(), bHasTag ? TEXT("JA") : TEXT("NEIN"));
+				
+				return !bHasTag; // Erlaubt Aktivierung, wenn das Tag NICHT vorhanden ist
+			}
+		}
+	}
+	return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
+}
+
+void UShootAbility::SynchronizeContinuousCooldown()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	UWeaponComponent* WeaponComp = GetWeaponComponent();
+	
+	if (ASC && WeaponComp)
+	{
+		FGameplayTag WeaponTag = WeaponComp->GetCurrentWeaponData().WeaponTag;
+		if (WeaponTag.IsValid())
+		{
+			// Prüfen, wie viel Restzeit der GAS-Cooldown für diese spezifische Waffe noch hat
+			FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(WeaponTag));
+			TArray<float> TimesRemaining = ASC->GetActiveEffectsTimeRemaining(Query);
+			
+			float MaxTimeRemaining = 0.f;
+			for (float T : TimesRemaining) if (T > MaxTimeRemaining) MaxTimeRemaining = T;
+
+			if (AAbilityUnit* Unit = Cast<AAbilityUnit>(GetAvatarActorFromActorInfo()))
+			{
+				// Wir manipulieren ActivationStartTime so, dass die interne Prüfung in GameplayAbilityBase
+				// exakt die verbleibende Zeit des GAS-Cooldowns berücksichtigt.
+				float ContinuousDuration = Unit->ContinuousAttackDuration;
+				ActivationStartTime = GetWorld()->GetTimeSeconds() - (ContinuousDuration - MaxTimeRemaining);
+				
+				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] Sync: Waffe %s, Rest-Cooldown: %.2fs, Neuer Timer gesetzt."), 
+					*WeaponTag.ToString(), MaxTimeRemaining);
+			}
+		}
 	}
 }

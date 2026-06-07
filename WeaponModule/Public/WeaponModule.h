@@ -4,6 +4,9 @@
 
 #include "Modules/ModuleManager.h"
 
+class AActor;
+class UScriptStruct;
+
 class FWeaponModuleModule : public IModuleInterface
 {
 public:

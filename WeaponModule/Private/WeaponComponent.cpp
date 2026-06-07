@@ -2,7 +2,9 @@
 
 #include "WeaponComponent.h"
 #include "WeaponAttributeSet.h"
+#include "ShootAbility.h"
 #include "Characters/Unit/LevelUnit.h"
+#include "Characters/Unit/AbilityUnit.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Net/UnrealNetwork.h"
@@ -11,6 +13,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/Actor.h"
+#include "Engine/GameInstance.h"
 #include "System/GameSaveSubsystem.h"
 #include "JsonObjectConverter.h"
 
@@ -166,6 +169,27 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 			WeaponAttributes->SetAttributeEffectAreaTalentPoints(EffectAreaTalentPoints);
 		}
 		Unit->ContinuousAttackDuration = Data.FireRate * Data.FireRateMultiplier;
+	}
+
+	// ShootAbility Instanzen finden und synchronisieren
+	if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(GetOwner()))
+	{
+		if (UAbilitySystemComponent* ASC = ASCInterface->GetAbilitySystemComponent())
+		{
+			for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+			{
+				if (Spec.Ability && Spec.Ability->IsA(UShootAbility::StaticClass()))
+				{
+					for (UGameplayAbility* Inst : Spec.GetAbilityInstances())
+					{
+						if (UShootAbility* ShootInst = Cast<UShootAbility>(Inst))
+						{
+							ShootInst->SynchronizeContinuousCooldown();
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

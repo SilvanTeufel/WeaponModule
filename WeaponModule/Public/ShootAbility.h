@@ -37,10 +37,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	int32 GetProjectileCount() const;
 
+	void SynchronizeContinuousCooldown();
+
 	virtual UGameplayEffect* GetCooldownGameplayEffect() const override;
 	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
 	virtual void GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& Duration) const override;
+	virtual const FGameplayTagContainer* GetCooldownTags() const override;
+	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TSubclassOf<class UGameplayEffect> AmmoCostEffectClass;
+
+protected:
+	mutable FGameplayTagContainer TempCooldownTags;
 };

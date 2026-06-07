@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "WeaponModule.h"
+#include "GameFramework/Actor.h"
 #include "Mass/MassActorBindingComponent.h"
 #include "WeaponComponent.h"
 #include "MassWeaponFragment.h"
