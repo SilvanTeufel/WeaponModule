@@ -634,6 +634,7 @@ void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
 				if (Row && Row->WeaponTag == Weapon.WeaponTag)
 				{
 					Weapon.WeaponMesh = Row->WeaponMesh;
+					Weapon.bCastShadow = Row->bCastShadow;
 					Weapon.WeaponIcon = Row->WeaponIcon;
 					Weapon.ProjectileClass = Row->ProjectileClass;
 					Weapon.EffectTalents = Row->EffectTalents;
@@ -714,6 +715,7 @@ void UWeaponComponent::UpdatePreview()
 
 	const FWeaponData& Data = AvailableWeapons[PreviewWeaponIndex];
 	WeaponPreview->SetStaticMesh(Data.WeaponMesh);
+	WeaponPreview->SetCastShadow(Data.bCastShadow);
 
 	if (AActor* Owner = GetOwner())
 	{

@@ -19,6 +19,9 @@ struct FWeaponData : public FTableRowBase
 	UStaticMesh* WeaponMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool bCastShadow = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName SocketName = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")

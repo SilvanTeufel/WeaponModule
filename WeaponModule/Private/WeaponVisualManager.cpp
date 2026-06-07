@@ -11,11 +11,15 @@ UWeaponVisualManager::UWeaponVisualManager()
 {
 }
 
-UInstancedStaticMeshComponent* UWeaponVisualManager::GetOrCreateISMComponent(UStaticMesh* Mesh)
+UInstancedStaticMeshComponent* UWeaponVisualManager::GetOrCreateISMComponent(UStaticMesh* Mesh, bool bCastShadow)
 {
 	if (!Mesh) return nullptr;
 
-	if (UInstancedStaticMeshComponent** FoundISM = MeshToISMMap.Find(Mesh))
+	FWeaponMeshKey Key;
+	Key.Mesh = Mesh;
+	Key.bCastShadow = bCastShadow;
+
+	if (UInstancedStaticMeshComponent** FoundISM = MeshToISMMap.Find(Key))
 	{
 		return *FoundISM;
 	}
@@ -24,23 +28,23 @@ UInstancedStaticMeshComponent* UWeaponVisualManager::GetOrCreateISMComponent(USt
 	if (OwnerActor)
 	{
 #if WITH_EDITOR
-		OwnerActor->SetActorLabel(FString::Printf(TEXT("WeaponISM_%s"), *Mesh->GetName()));
+		OwnerActor->SetActorLabel(FString::Printf(TEXT("WeaponISM_%s_%s"), *Mesh->GetName(), bCastShadow ? TEXT("Shadow") : TEXT("NoShadow")));
 #endif
 		UInstancedStaticMeshComponent* NewISM = NewObject<UInstancedStaticMeshComponent>(OwnerActor);
 		NewISM->SetStaticMesh(Mesh);
 		NewISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		NewISM->SetCastShadow(true);
+		NewISM->SetCastShadow(bCastShadow);
 		NewISM->RegisterComponent();
 		OwnerActor->SetRootComponent(NewISM);
 		
-		MeshToISMMap.Add(Mesh, NewISM);
+		MeshToISMMap.Add(Key, NewISM);
 		return NewISM;
 	}
 
 	return nullptr;
 }
 
-void UWeaponVisualManager::AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh)
+void UWeaponVisualManager::AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh, bool bCastShadow)
 {
 	UMassEntitySubsystem* EntitySubsystem = GetWorld()->GetSubsystem<UMassEntitySubsystem>();
 	if (!EntitySubsystem) return;
@@ -56,7 +60,7 @@ void UWeaponVisualManager::AssignWeapon(FMassEntityHandle Entity, UStaticMesh* M
 		RemoveWeapon(Entity);
 	}
 
-	UInstancedStaticMeshComponent* ISM = GetOrCreateISMComponent(Mesh);
+	UInstancedStaticMeshComponent* ISM = GetOrCreateISMComponent(Mesh, bCastShadow);
 	if (!ISM) return;
 
 	int32 NewIndex = INDEX_NONE;

@@ -10,6 +10,23 @@
 
 struct FMassEntityHandle;
 
+USTRUCT()
+struct FWeaponMeshKey {
+	GENERATED_BODY()
+	UPROPERTY()
+	UStaticMesh* Mesh = nullptr;
+	UPROPERTY()
+	bool bCastShadow = false;
+
+	bool operator==(const FWeaponMeshKey& Other) const {
+		return Mesh == Other.Mesh && bCastShadow == Other.bCastShadow;
+	}
+
+	friend uint32 GetTypeHash(const FWeaponMeshKey& Key) {
+		return HashCombine(GetTypeHash(Key.Mesh), GetTypeHash(Key.bCastShadow));
+	}
+};
+
 /**
  * 
  */
@@ -21,14 +38,14 @@ class WEAPONMODULE_API UWeaponVisualManager : public UWorldSubsystem
 public:
 	UWeaponVisualManager();
 
-	UInstancedStaticMeshComponent* GetOrCreateISMComponent(UStaticMesh* Mesh);
+	UInstancedStaticMeshComponent* GetOrCreateISMComponent(UStaticMesh* Mesh, bool bCastShadow);
 
-	void AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh);
+	void AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh, bool bCastShadow);
 	void RemoveWeapon(FMassEntityHandle Entity);
 
 protected:
 	UPROPERTY()
-	TMap<UStaticMesh*, UInstancedStaticMeshComponent*> MeshToISMMap;
+	TMap<FWeaponMeshKey, UInstancedStaticMeshComponent*> MeshToISMMap;
 
 	TMap<UInstancedStaticMeshComponent*, TArray<int32>> FreeIndexPool;
 };
