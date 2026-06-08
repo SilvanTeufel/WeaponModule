@@ -82,6 +82,71 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UImage* WeaponIconImage;
 
+	// Weapon Icons
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage0;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage1;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage2;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage3;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage4;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage5;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage6;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage7;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage8;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage9;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage10;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage11;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage12;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UImage* WeaponIconImage13;
+
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder0;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder1;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder2;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder3;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder4;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder5;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder6;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder7;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder8;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder9;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder10;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder11;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder12;
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UBorder* WeaponIconBorder13;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|UI")
+	FLinearColor HighlightColor = FLinearColor(1.f, 1.f, 0.f, 1.f);
+
+	UPROPERTY(EditAnywhere, Category = "Weapon|UI")
+	FLinearColor DefaultColor = FLinearColor(0.f, 0.f, 0.f, 0.f);
+
 	// Ammo
 	UPROPERTY(meta = (BindWidget))
 	class UProgressBar* AmmoBar;

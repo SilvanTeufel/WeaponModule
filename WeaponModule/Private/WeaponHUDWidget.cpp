@@ -12,6 +12,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "Components/Button.h"
+#include "Components/Border.h"
 #include "WeaponSelectionHUDWidget.h"
 #include "WeaponHUDComponent.h"
 
@@ -125,6 +126,48 @@ void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
 		if (WeaponIconImage && CurrentWeapon.WeaponIcon)
 		{
 			WeaponIconImage->SetBrushFromTexture(CurrentWeapon.WeaponIcon);
+		}
+
+		TArray<UImage*> IconImages = { WeaponIconImage0, WeaponIconImage1, WeaponIconImage2, WeaponIconImage3, WeaponIconImage4, WeaponIconImage5, WeaponIconImage6, WeaponIconImage7, WeaponIconImage8, WeaponIconImage9, WeaponIconImage10, WeaponIconImage11, WeaponIconImage12, WeaponIconImage13 };
+		TArray<UBorder*> IconBorders = { WeaponIconBorder0, WeaponIconBorder1, WeaponIconBorder2, WeaponIconBorder3, WeaponIconBorder4, WeaponIconBorder5, WeaponIconBorder6, WeaponIconBorder7, WeaponIconBorder8, WeaponIconBorder9, WeaponIconBorder10, WeaponIconBorder11, WeaponIconBorder12, WeaponIconBorder13 };
+
+		for (int32 i = 0; i < IconImages.Num(); ++i)
+		{
+			if (IconImages[i])
+			{
+				if (WeaponComp->AvailableWeapons.IsValidIndex(i))
+				{
+					IconImages[i]->SetVisibility(ESlateVisibility::Visible);
+					if (WeaponComp->AvailableWeapons[i].WeaponIcon)
+					{
+						IconImages[i]->SetBrushFromTexture(WeaponComp->AvailableWeapons[i].WeaponIcon);
+					}
+				}
+				else
+				{
+					IconImages[i]->SetVisibility(ESlateVisibility::Collapsed);
+				}
+			}
+
+			if (IconBorders[i])
+			{
+				if (WeaponComp->AvailableWeapons.IsValidIndex(i))
+				{
+					IconBorders[i]->SetVisibility(ESlateVisibility::Visible);
+					if (i == WeaponComp->CurrentWeaponIndex)
+					{
+						IconBorders[i]->SetBrushColor(HighlightColor);
+					}
+					else
+					{
+						IconBorders[i]->SetBrushColor(DefaultColor);
+					}
+				}
+				else
+				{
+					IconBorders[i]->SetVisibility(ESlateVisibility::Collapsed);
+				}
+			}
 		}
 
 		if (EffectAreaAmount0 && WeaponComp->EffectAreas.IsValidIndex(0)) 
