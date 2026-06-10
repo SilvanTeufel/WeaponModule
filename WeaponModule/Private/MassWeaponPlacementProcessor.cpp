@@ -31,6 +31,7 @@ void UMassWeaponPlacementProcessor::ConfigureQueries(const TSharedRef<FMassEntit
 	EntityQuery.AddRequirement<FMassActorFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.AddRequirement<FMassWeaponFragment>(EMassFragmentAccess::ReadWrite);
 	EntityQuery.AddRequirement<FMassVisibilityFragment>(EMassFragmentAccess::ReadOnly);
+	EntityQuery.AddTagRequirement<FMassStateDeadTag>(EMassFragmentPresence::Optional);
 	EntityQuery.RegisterWithProcessor(*this);
 }
 
@@ -43,6 +44,7 @@ void UMassWeaponPlacementProcessor::Execute(FMassEntityManager& EntityManager, F
 		TArrayView<FMassActorFragment> ActorList = Context.GetMutableFragmentView<FMassActorFragment>();
 		TArrayView<FMassWeaponFragment> WeaponList = Context.GetMutableFragmentView<FMassWeaponFragment>();
 		TConstArrayView<FMassVisibilityFragment> VisibilityList = Context.GetFragmentView<FMassVisibilityFragment>();
+		bool bIsDead = Context.DoesArchetypeHaveTag<FMassStateDeadTag>();
 
 		for (int i = 0; i < Context.GetNumEntities(); ++i)
 		{
@@ -58,7 +60,7 @@ void UMassWeaponPlacementProcessor::Execute(FMassEntityManager& EntityManager, F
 				bool bVisible = Vis.bIsVisibleEnemy && Vis.bIsOnViewport;
 				FTransform WeaponTransform;
 
-				if (bVisible && !OwnerActor->IsHidden())
+				if (bVisible && !OwnerActor->IsHidden() && !bIsDead)
 				{
 					AUnitBase* Unit = Cast<AUnitBase>(OwnerActor);
 					FTransform ParentTransform;

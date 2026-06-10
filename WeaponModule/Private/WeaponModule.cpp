@@ -2,6 +2,9 @@
 
 #include "WeaponModule.h"
 #include "GameFramework/Actor.h"
+
+DEFINE_LOG_CATEGORY(LogWeaponModule);
+
 #include "Mass/MassActorBindingComponent.h"
 #include "WeaponComponent.h"
 #include "MassWeaponFragment.h"

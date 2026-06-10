@@ -39,7 +39,8 @@ public class WeaponModule : ModuleRules
 				"UMG",
 				"MassActors",
 				"Json",
-				"JsonUtilities"
+				"JsonUtilities",
+				"DeveloperSettings"
 			}
 			);
 			
