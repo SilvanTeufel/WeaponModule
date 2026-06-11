@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "MassProcessor.h"
 #include "MassEntityTypes.h"
+#include "MassEntityQuery.h"
 #include "Core/UnitData.h"
 #include "MassWeaponSpawnProcessor.generated.h"
 

@@ -1,4 +1,4 @@
-// Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
+ // Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
 
 #include "MassWeaponPlacementProcessor.h"
 #include "MassWeaponFragment.h"

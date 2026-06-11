@@ -16,7 +16,7 @@ UMassWeaponSpawnProcessor::UMassWeaponSpawnProcessor()
 {
 	bAutoRegisterWithProcessingPhases = true;
 	bRequiresGameThreadExecution = true;
-	ExecutionFlags = (int32)EProcessorExecutionFlags::Server;
+	ExecutionFlags = (int32)EProcessorExecutionFlags::Server | (int32)EProcessorExecutionFlags::Standalone;
 	ExecutionOrder.ExecuteInGroup = UE::Mass::ProcessorGroupNames::Tasks;
 }
 
