@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
 
 #include "WeaponModule.h"
 #include "GameFramework/Actor.h"
@@ -6,8 +6,8 @@
 DEFINE_LOG_CATEGORY(LogWeaponModule);
 
 #include "Mass/MassActorBindingComponent.h"
-#include "WeaponComponent.h"
-#include "MassWeaponFragment.h"
+#include "Components/WeaponComponent.h"
+#include "Mass/MassWeaponFragment.h"
 
 #define LOCTEXT_NAMESPACE "FWeaponModuleModule"
 
