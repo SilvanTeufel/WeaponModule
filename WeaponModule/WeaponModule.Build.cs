@@ -30,6 +30,7 @@ public class WeaponModule : ModuleRules
 				"GameplayAbilities",
 				"GameplayTags",
 				"GameplayTasks",
+				"MassCore",
 				"MassEntity",
 				"MassCommon",
 				"MassSignals",
@@ -48,8 +49,7 @@ public class WeaponModule : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore",
-				"StructUtils"
+				"SlateCore"
 			}
 			);
 		
