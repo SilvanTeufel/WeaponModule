@@ -1,8 +1,14 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
 
 #pragma once
 
 #include "Modules/ModuleManager.h"
+#include "Logging/LogMacros.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogWeaponModule, Log, All);
+
+class AActor;
+class UScriptStruct;
 
 class FWeaponModuleModule : public IModuleInterface
 {

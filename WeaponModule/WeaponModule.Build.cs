@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -38,7 +38,10 @@ public class WeaponModule : ModuleRules
 				"MassSpawner",
 				"NetCore",
 				"UMG",
-				"MassActors"
+				"MassActors",
+				"Json",
+				"JsonUtilities",
+				"DeveloperSettings"
 			}
 			);
 			
