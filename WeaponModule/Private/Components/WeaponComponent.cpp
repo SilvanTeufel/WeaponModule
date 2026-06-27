@@ -5,6 +5,7 @@
 #include "Abilities/ShootAbility.h"
 #include "Characters/Unit/LevelUnit.h"
 #include "Characters/Unit/AbilityUnit.h"
+#include "Characters/Unit/PerformanceUnit.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Net/UnrealNetwork.h"
@@ -169,6 +170,20 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 			WeaponAttributes->SetAttributeEffectAreaTalentPoints(EffectAreaTalentPoints);
 		}
 		Unit->ContinuousAttackDuration = Data.FireRate * Data.FireRateMultiplier;
+
+		// Sync the unit's autoattack projectile to the CURRENT weapon's projectile.
+		// The RTSUnitTemplate autoattack fallback (UnitStateProcessor -> AUnitBase::SpawnProjectileWithEntities)
+		// fires APerformanceUnit::ProjectileBaseClass, NOT FWeaponData.ProjectileClass. Without this sync the
+		// autoattack always uses the unit's default projectile regardless of which weapon is equipped.
+		// ProjectileBaseClass is declared on APerformanceUnit (a subclass of AAbilityUnit), so cast down to it.
+		// Guarded so melee / projectile-less weapons don't wipe a designer-set default.
+		if (Data.ProjectileClass)
+		{
+			if (APerformanceUnit* PerfUnit = Cast<APerformanceUnit>(Unit))
+			{
+				PerfUnit->ProjectileBaseClass = Data.ProjectileClass;
+			}
+		}
 	}
 
 	// ShootAbility Instanzen finden und synchronisieren

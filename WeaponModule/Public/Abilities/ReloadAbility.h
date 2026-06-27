@@ -20,6 +20,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void PerformReload();
 
+	/** Base reload time of the current weapon (FWeaponData.ReloadTime), without the speed multiplier. */
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	float GetBaseReloadTime() const;
+
+	/** Effective reload time = base ReloadTime * ReloadSpeedMultiplier — matches the duration PerformReload applies. */
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	float GetReloadTime() const;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TSubclassOf<class UGameplayEffect> ReloadEffectClass;
 };

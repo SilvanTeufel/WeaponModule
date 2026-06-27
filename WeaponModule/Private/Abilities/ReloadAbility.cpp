@@ -10,6 +10,29 @@ UReloadAbility::UReloadAbility()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
+float UReloadAbility::GetBaseReloadTime() const
+{
+	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	{
+		return WeaponComp->GetCurrentWeaponData().ReloadTime;
+	}
+	return 0.f;
+}
+
+float UReloadAbility::GetReloadTime() const
+{
+	float ReloadTime = GetBaseReloadTime();
+	if (UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet())
+	{
+		const float Mult = WeaponAttributes->GetReloadSpeedMultiplier();
+		if (Mult > 0.f)
+		{
+			ReloadTime *= Mult;
+		}
+	}
+	return ReloadTime;
+}
+
 void UReloadAbility::PerformReload()
 {
 	UWeaponAttributeSet* WeaponAttributes = GetWeaponAttributeSet();
