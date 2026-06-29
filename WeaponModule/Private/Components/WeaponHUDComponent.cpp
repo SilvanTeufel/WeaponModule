@@ -73,3 +73,13 @@ void UWeaponHUDComponent::Server_SelectEffectAreaIndex_Implementation(UWeaponCom
 {
 	if (WeaponComp) WeaponComp->Server_SelectEffectAreaIndex(Index);
 }
+
+void UWeaponHUDComponent::Server_InvestInCrowdControlTalent_Implementation(UWeaponComponent* WeaponComp, ECrowdControlTalent Talent)
+{
+	if (WeaponComp) WeaponComp->Server_InvestInCrowdControlTalent(Talent);
+}
+
+void UWeaponHUDComponent::Server_ResetCrowdControlTalents_Implementation(UWeaponComponent* WeaponComp)
+{
+	if (WeaponComp) WeaponComp->Server_ResetCrowdControlTalents();
+}

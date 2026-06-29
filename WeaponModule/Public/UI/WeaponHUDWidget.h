@@ -36,6 +36,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* ToggleEffectAreaTalentButton;
 
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UButton* ToggleCrowdControlTalentButton;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon|UI")
 	class AUnitBase* CurrentUnit;
 
@@ -47,6 +50,9 @@ protected:
 
 	UFUNCTION()
 	void OnToggleEffectAreaTalentClicked();
+
+	UFUNCTION()
+	void OnToggleCrowdControlTalentClicked();
 
 	// Health
 	UPROPERTY(meta = (BindWidget))

@@ -33,6 +33,8 @@ public class WeaponModule : ModuleRules
 				"MassCore",
 				"MassEntity",
 				"MassCommon",
+				"MassMovement",
+				"MassNavigation",   // FMassMoveTargetFragment lives here (StaticStruct link symbol Z_Construct_UScriptStruct_FMassMoveTargetFragment) — needed for GetFragmentDataPtr<FMassMoveTargetFragment> in CrowdControlMarker
 				"MassSignals",
 				"MassRepresentation",
 				"MassSpawner",
@@ -41,7 +43,8 @@ public class WeaponModule : ModuleRules
 				"MassActors",
 				"Json",
 				"JsonUtilities",
-				"DeveloperSettings"
+				"DeveloperSettings",
+				"Niagara"
 			}
 			);
 			

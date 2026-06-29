@@ -92,6 +92,7 @@ void UWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UWeaponComponent, AvailableWeapons);
 	DOREPLIFETIME(UWeaponComponent, EffectAreas);
 	DOREPLIFETIME(UWeaponComponent, EffectAreaTalentPoints);
+	DOREPLIFETIME(UWeaponComponent, CrowdControl);
 }
 
 void UWeaponComponent::OnRep_CurrentWeaponIndex()
@@ -158,6 +159,9 @@ void UWeaponComponent::SyncAttributesFromWeapon(int32 Index)
 	WeaponAttributes->SetAttributeSelectedEffectIndex(Data.SelectedEffectIndex1);
 	WeaponAttributes->SetAttributeSelectedEffectIndex2(Data.SelectedEffectIndex2);
 	WeaponAttributes->SetAttributeSelectedEffectIndex3(Data.SelectedEffectIndex3);
+
+	// Crowd-control points: Start + (CharacterLevel / Divisor) - Spent. Server-computed, replicated to the UI.
+	WeaponAttributes->SetAttributeCrowdControlTalentPoints(GetAvailableCrowdControlPoints());
 
 	if (AAbilityUnit* Unit = Cast<AAbilityUnit>(GetOwner())) {
 		if (ALevelUnit* LevelUnit = Cast<ALevelUnit>(Unit)) {
@@ -585,6 +589,61 @@ void UWeaponComponent::Server_ResetEffectAreaTalents_Implementation(int32 AreaIn
 	}
 }
 
+void UWeaponComponent::Server_InvestInCrowdControlTalent_Implementation(ECrowdControlTalent Talent)
+{
+	if (GetAvailableCrowdControlPoints() < CrowdControlTalentCost)
+	{
+		return;
+	}
+
+	switch (Talent)
+	{
+	case ECrowdControlTalent::Range:      CrowdControl.RangeLevel++;      break;
+	case ECrowdControlTalent::Duration:   CrowdControl.DurationLevel++;   break;
+	case ECrowdControlTalent::Angle:      CrowdControl.AngleLevel++;      break;
+	case ECrowdControlTalent::MaxTargets: CrowdControl.MaxTargetsLevel++; break;
+	case ECrowdControlTalent::Height:     CrowdControl.HeightLevel++;     break;
+	case ECrowdControlTalent::Cooldown:   CrowdControl.CooldownLevel++;   break;
+	default: return;
+	}
+
+	CrowdControl.SpentPoints += CrowdControlTalentCost;
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
+}
+
+void UWeaponComponent::Server_ResetCrowdControlTalents_Implementation()
+{
+	CrowdControl.SpentPoints = 0.f;
+
+	CrowdControl.RangeLevel = 0;
+	CrowdControl.DurationLevel = 0;
+	CrowdControl.AngleLevel = 0;
+	CrowdControl.MaxTargetsLevel = 0;
+	CrowdControl.HeightLevel = 0;
+	CrowdControl.CooldownLevel = 0;
+
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
+}
+
+float UWeaponComponent::GetAvailableCrowdControlPoints() const
+{
+	int32 Level = 0;
+	if (ALevelUnit* LevelUnit = Cast<ALevelUnit>(GetOwner()))
+	{
+		Level = LevelUnit->GetCharacterLevel();
+	}
+	const int32 Divisor = FMath::Max(1, CrowdControlLevelDivisor);
+	const float Granted = StartCrowdControlTalentPoints + (float)(Level / Divisor);
+	return FMath::Max(0.f, Granted - CrowdControl.SpentPoints);
+}
+
+float UWeaponComponent::GetCrowdControlRadius() const     { return CrowdControl.GetEffectiveRadius(); }
+float UWeaponComponent::GetCrowdControlDuration() const   { return CrowdControl.GetEffectiveDuration(); }
+float UWeaponComponent::GetCrowdControlHalfAngleDeg() const { return CrowdControl.GetEffectiveHalfAngleDeg(); }
+int32 UWeaponComponent::GetCrowdControlMaxTargets() const { return CrowdControl.GetEffectiveMaxTargets(); }
+float UWeaponComponent::GetCrowdControlHalfHeight() const { return CrowdControl.GetEffectiveHalfHeight(); }
+float UWeaponComponent::GetCrowdControlCooldown() const   { return CrowdControl.GetEffectiveCooldown(); }
+
 void UWeaponComponent::OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData)
 {
 	if (Unit != GetOwner()) return;
@@ -610,6 +669,12 @@ void UWeaponComponent::OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData)
 
 	SaveData.SerializedModuleData.Add(TEXT("CurrentWeaponIndex"), FString::FromInt(CurrentWeaponIndex));
 	SaveData.SerializedModuleData.Add(TEXT("EffectAreaTalentPoints"), FString::SanitizeFloat(EffectAreaTalentPoints));
+
+	FString CrowdControlJson;
+	if (FJsonObjectConverter::UStructToJsonObjectString(CrowdControl, CrowdControlJson))
+	{
+		SaveData.SerializedModuleData.Add(TEXT("CrowdControl"), CrowdControlJson);
+	}
 }
 
 void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
@@ -634,6 +699,11 @@ void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
 	if (FString* PointsStr = SaveData.SerializedModuleData.Find(TEXT("EffectAreaTalentPoints")))
 	{
 		EffectAreaTalentPoints = FCString::Atof(**PointsStr);
+	}
+
+	if (FString* CrowdControlJson = SaveData.SerializedModuleData.Find(TEXT("CrowdControl")))
+	{
+		FJsonObjectConverter::JsonObjectStringToUStruct<FCrowdControlData>(*CrowdControlJson, &CrowdControl, 0, 0);
 	}
 
 	// Restore assets from DataTables since JsonObjectConverter doesn't handle pointers/classes

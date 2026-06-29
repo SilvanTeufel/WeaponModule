@@ -168,6 +168,116 @@ struct FEffectAreaData : public FTableRowBase
 	float Amount = 0.0f;
 };
 
+/** Identifies which tunable value of the crowd-control ability a talent point is spent on. */
+UENUM(BlueprintType)
+enum class ECrowdControlTalent : uint8
+{
+	Range      UMETA(DisplayName = "Range / Radius"),
+	Duration   UMETA(DisplayName = "Effect Duration"),
+	Angle      UMETA(DisplayName = "Cone Angle"),
+	MaxTargets UMETA(DisplayName = "Max Targets"),
+	Height     UMETA(DisplayName = "Vertical Reach"),
+	Cooldown   UMETA(DisplayName = "Cooldown Reduction")
+};
+
+/**
+ * Per-unit tuning data for the Crowd-Control ability.
+ * Base values + per-level increments are designer-tunable; the *Level fields are the
+ * invested talent points (replicated, mutated at runtime via the talent widget).
+ * UWeaponComponent exposes effective getters (GetCrowdControlRadius() etc.) that the
+ * ability reads, so spent talent points directly drive the ability functions.
+ */
+USTRUCT(BlueprintType)
+struct FCrowdControlData
+{
+	GENERATED_BODY()
+
+	// --- Base values ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Base")
+	float BaseRadius = 600.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Base")
+	float BaseDurationSeconds = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Base")
+	float BaseHalfAngleDeg = 35.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Base")
+	int32 BaseMaxTargets = 8;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Base")
+	float BaseHalfHeight = 250.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Base")
+	float BaseCooldownSeconds = 12.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Base")
+	float MinCooldownSeconds = 1.f;
+
+	// --- Per-level increments ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|PerLevel")
+	float RadiusPerLevel = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|PerLevel")
+	float DurationPerLevel = 0.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|PerLevel")
+	float HalfAnglePerLevel = 5.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|PerLevel")
+	int32 MaxTargetsPerLevel = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|PerLevel")
+	float HalfHeightPerLevel = 75.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|PerLevel")
+	float CooldownReductionPerLevel = 1.f;
+
+	// --- Invested talent levels (runtime, replicated) ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Levels")
+	int32 RangeLevel = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Levels")
+	int32 DurationLevel = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Levels")
+	int32 AngleLevel = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Levels")
+	int32 MaxTargetsLevel = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Levels")
+	int32 HeightLevel = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Levels")
+	int32 CooldownLevel = 0;
+
+	/** Talent points spent so far (used for the Reset refund). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl|Levels")
+	float SpentPoints = 0.f;
+
+	// --- Effective (talent-tuned) values: base + invested-level * per-level ---
+	float GetEffectiveRadius() const { return BaseRadius + (float)RangeLevel * RadiusPerLevel; }
+	float GetEffectiveDuration() const { return BaseDurationSeconds + (float)DurationLevel * DurationPerLevel; }
+	float GetEffectiveHalfAngleDeg() const { return FMath::Clamp(BaseHalfAngleDeg + (float)AngleLevel * HalfAnglePerLevel, 1.f, 179.f); }
+	int32 GetEffectiveMaxTargets() const { return FMath::Max(0, BaseMaxTargets + MaxTargetsLevel * MaxTargetsPerLevel); }
+	float GetEffectiveHalfHeight() const { return BaseHalfHeight + (float)HeightLevel * HalfHeightPerLevel; }
+	float GetEffectiveCooldown() const { return FMath::Max(MinCooldownSeconds, BaseCooldownSeconds - (float)CooldownLevel * CooldownReductionPerLevel); }
+
+	/** Copy the invested talent levels (and spent points) from another data set, keeping THIS one's
+	 *  base values + per-level increments. Lets a per-ability base config use the unit's invested points. */
+	void CopyLevelsFrom(const FCrowdControlData& Src)
+	{
+		RangeLevel = Src.RangeLevel;
+		DurationLevel = Src.DurationLevel;
+		AngleLevel = Src.AngleLevel;
+		MaxTargetsLevel = Src.MaxTargetsLevel;
+		HeightLevel = Src.HeightLevel;
+		CooldownLevel = Src.CooldownLevel;
+		SpentPoints = Src.SpentPoints;
+	}
+};
+
 USTRUCT(BlueprintType)
 struct FWeaponUpgrade
 {
@@ -308,6 +418,52 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Leveling")
 	int32 MaxAreaEffects = 3;
+
+	// --- Crowd-Control ability talents ---
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Weapon|CrowdControl")
+	FCrowdControlData CrowdControl;
+
+	// Flat bonus points granted on top of the per-level points (designer default, optional).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|CrowdControl")
+	float StartCrowdControlTalentPoints = 0.0f;
+
+	// Talent points granted per character level. 1 = one point each level (LevelPoints = CharacterLevel / Divisor).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|CrowdControl")
+	int32 CrowdControlLevelDivisor = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|CrowdControl")
+	float CrowdControlTalentCost = 1.0f;
+
+	// Currently available (spendable) crowd-control points = Start + (CharacterLevel / Divisor) - Spent.
+	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
+	float GetAvailableCrowdControlPoints() const;
+
+	/** Invest one talent point into the given crowd-control talent (server-authoritative). */
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon|CrowdControl")
+	void Server_InvestInCrowdControlTalent(ECrowdControlTalent Talent);
+
+	/** Refund all crowd-control talent points and reset every level to 0 (server-authoritative). */
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon|CrowdControl")
+	void Server_ResetCrowdControlTalents();
+
+	// Effective (talent-tuned) values consumed by UCrowdControlAbility and the talent widget.
+	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
+	float GetCrowdControlRadius() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
+	float GetCrowdControlDuration() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
+	float GetCrowdControlHalfAngleDeg() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
+	int32 GetCrowdControlMaxTargets() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
+	float GetCrowdControlHalfHeight() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
+	float GetCrowdControlCooldown() const;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Category = "Preview")

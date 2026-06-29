@@ -283,4 +283,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Attributes")
 	void SetAttributeSelectedEffectAreaIndex(float NewValue);
+
+	// CrowdControlTalentPoints //
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_CrowdControlTalentPoints)
+	FGameplayAttributeData CrowdControlTalentPoints;
+	ATTRIBUTE_ACCESSORS(UWeaponAttributeSet, CrowdControlTalentPoints);
+
+	UFUNCTION()
+	virtual void OnRep_CrowdControlTalentPoints(const FGameplayAttributeData& OldCrowdControlTalentPoints);
+
+	UFUNCTION(BlueprintCallable, Category = "Attributes")
+	void SetAttributeCrowdControlTalentPoints(float NewValue);
+	// CrowdControlTalentPoints //
 };

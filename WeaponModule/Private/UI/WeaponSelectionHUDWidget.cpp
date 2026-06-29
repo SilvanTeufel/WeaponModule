@@ -4,6 +4,7 @@
 #include "UI/WeaponTalentWidget.h"
 #include "UI/WeaponEffectTalentWidget.h"
 #include "UI/EffectAreaTalentWidget.h"
+#include "UI/CrowdControlTalentWidget.h"
 #include "Hud/HUDBase.h"
 #include "Characters/Unit/UnitBase.h"
 #include "Components/WeaponComponent.h"
@@ -95,6 +96,15 @@ void UWeaponSelectionHUDWidget::CreateHUDWidgets()
 				EffectAreaTalentContainer->AddChild(PreviewWidget);
 			}
 		}
+
+		if (IsDesignTime() && CrowdControlTalentContainer && CrowdControlTalentWidgetClass)
+		{
+			CrowdControlTalentContainer->ClearChildren();
+			if (UCrowdControlTalentWidget* PreviewWidget = CreateWidget<UCrowdControlTalentWidget>(this, CrowdControlTalentWidgetClass))
+			{
+				CrowdControlTalentContainer->AddChild(PreviewWidget);
+			}
+		}
 	}
 }
 
@@ -127,6 +137,40 @@ void UWeaponSelectionHUDWidget::ToggleEffectAreaTalentWidget(AUnitBase* Unit)
 		// Hide other widgets
 		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UWeaponSelectionHUDWidget::ToggleCrowdControlTalentWidget(AUnitBase* Unit)
+{
+	if (!CrowdControlTalentContainer || !CrowdControlTalentWidgetClass) return;
+
+	if (CrowdControlTalentWidgetInstance)
+	{
+		if (CrowdControlTalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible && CrowdControlTalentWidgetInstance->GetTargetUnit() == Unit)
+		{
+			CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+			return;
+		}
+	}
+	else
+	{
+		CrowdControlTalentWidgetInstance = CreateWidget<UCrowdControlTalentWidget>(this, CrowdControlTalentWidgetClass);
+		if (CrowdControlTalentWidgetInstance)
+		{
+			CrowdControlTalentContainer->AddChild(CrowdControlTalentWidgetInstance);
+		}
+	}
+
+	if (CrowdControlTalentWidgetInstance)
+	{
+		CrowdControlTalentWidgetInstance->SetTargetUnit(Unit);
+		CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+		// Hide other widgets
+		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -161,6 +205,7 @@ void UWeaponSelectionHUDWidget::ToggleTalentWidget(AUnitBase* Unit)
 		// Hide other widgets
 		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -195,6 +240,7 @@ void UWeaponSelectionHUDWidget::ToggleEffectTalentWidget(AUnitBase* Unit)
 		// Hide other widgets
 		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -290,6 +336,22 @@ void UWeaponSelectionHUDWidget::UpdateSelection()
 		else
 		{
 			EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// Update Crowd-Control Talent Widget if visible
+	if (CrowdControlTalentWidgetInstance && CrowdControlTalentWidgetInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		if (SelectedUnitsWithWeapons.Num() > 0)
+		{
+			if (SelectedUnitsWithWeapons.Num() == 1 || !SelectedUnitsWithWeapons.Contains(CrowdControlTalentWidgetInstance->GetTargetUnit()))
+			{
+				CrowdControlTalentWidgetInstance->SetTargetUnit(SelectedUnitsWithWeapons[0]);
+			}
+		}
+		else
+		{
+			CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }

@@ -27,6 +27,7 @@ UWeaponAttributeSet::UWeaponAttributeSet()
 	InitSelectedEffectIndex3(-1.0f);
 	InitEffectAreaTalentPoints(0.0f);
 	InitSelectedEffectAreaIndex(-1.0f);
+	InitCrowdControlTalentPoints(0.0f);
 }
 
 void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -58,6 +59,7 @@ void UWeaponAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectIndex3, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, EffectAreaTalentPoints, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, SelectedEffectAreaIndex, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UWeaponAttributeSet, CrowdControlTalentPoints, COND_None, REPNOTIFY_Always);
 }
 
 void UWeaponAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -266,4 +268,14 @@ void UWeaponAttributeSet::OnRep_SelectedEffectAreaIndex(const FGameplayAttribute
 void UWeaponAttributeSet::SetAttributeSelectedEffectAreaIndex(float NewValue)
 {
 	SetSelectedEffectAreaIndex(NewValue);
+}
+
+void UWeaponAttributeSet::OnRep_CrowdControlTalentPoints(const FGameplayAttributeData& OldCrowdControlTalentPoints)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UWeaponAttributeSet, CrowdControlTalentPoints, OldCrowdControlTalentPoints);
+}
+
+void UWeaponAttributeSet::SetAttributeCrowdControlTalentPoints(float NewValue)
+{
+	SetCrowdControlTalentPoints(NewValue);
 }

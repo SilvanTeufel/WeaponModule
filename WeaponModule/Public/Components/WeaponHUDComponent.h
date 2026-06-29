@@ -56,4 +56,10 @@ public:
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
 	void Server_SelectEffectAreaIndex(UWeaponComponent* WeaponComp, int32 Index);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_InvestInCrowdControlTalent(UWeaponComponent* WeaponComp, ECrowdControlTalent Talent);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_ResetCrowdControlTalents(UWeaponComponent* WeaponComp);
 };
