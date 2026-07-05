@@ -5,6 +5,7 @@
 #include "UI/WeaponEffectTalentWidget.h"
 #include "UI/EffectAreaTalentWidget.h"
 #include "UI/CrowdControlTalentWidget.h"
+#include "UI/TalentTreeWidget.h"
 #include "Hud/HUDBase.h"
 #include "Characters/Unit/UnitBase.h"
 #include "Components/WeaponComponent.h"
@@ -16,6 +17,7 @@
 #include "Components/UniformGridSlot.h"
 #include "Components/GridPanel.h"
 #include "Components/GridSlot.h"
+#include "Components/CanvasPanelSlot.h"
 
 void UWeaponSelectionHUDWidget::NativeConstruct()
 {
@@ -105,6 +107,21 @@ void UWeaponSelectionHUDWidget::CreateHUDWidgets()
 				CrowdControlTalentContainer->AddChild(PreviewWidget);
 			}
 		}
+
+		if (IsDesignTime() && TalentTreeContainer && WidgetTree)
+		{
+			TalentTreeContainer->ClearChildren();
+			TSubclassOf<UTalentTreeWidget> ClassToUse = TalentTreeWidgetClass;
+			if (!ClassToUse) ClassToUse = UTalentTreeWidget::StaticClass();
+			if (UTalentTreeWidget* PreviewWidget = WidgetTree->ConstructWidget<UTalentTreeWidget>(ClassToUse))
+			{
+				UPanelSlot* PreviewSlot = TalentTreeContainer->AddChild(PreviewWidget);
+				if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(PreviewSlot))
+				{
+					CanvasSlot->SetAutoSize(true);
+				}
+			}
+		}
 	}
 }
 
@@ -137,6 +154,48 @@ void UWeaponSelectionHUDWidget::ToggleEffectAreaTalentWidget(AUnitBase* Unit)
 		// Hide other widgets
 		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UWeaponSelectionHUDWidget::ToggleTalentTreeWidget(AUnitBase* Unit)
+{
+	if (!TalentTreeContainer) return;
+
+	if (TalentTreeWidgetInstance)
+	{
+		if (TalentTreeWidgetInstance->GetVisibility() == ESlateVisibility::Visible && TalentTreeWidgetInstance->GetTargetUnit() == Unit)
+		{
+			TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+			return;
+		}
+	}
+	else
+	{
+		TSubclassOf<UTalentTreeWidget> ClassToUse = TalentTreeWidgetClass;
+		if (!ClassToUse) ClassToUse = UTalentTreeWidget::StaticClass();
+		TalentTreeWidgetInstance = WidgetTree->ConstructWidget<UTalentTreeWidget>(ClassToUse);
+		if (TalentTreeWidgetInstance)
+		{
+			UPanelSlot* NewSlot = TalentTreeContainer->AddChild(TalentTreeWidgetInstance);
+			// A code-created child in a Canvas Panel gets a zero-size slot -> invisible. Auto-size it.
+			if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(NewSlot))
+			{
+				CanvasSlot->SetAutoSize(true);
+			}
+		}
+	}
+
+	if (TalentTreeWidgetInstance)
+	{
+		TalentTreeWidgetInstance->SetTargetUnit(Unit);
+		TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+		// Hide other widgets
+		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
@@ -171,6 +230,7 @@ void UWeaponSelectionHUDWidget::ToggleCrowdControlTalentWidget(AUnitBase* Unit)
 		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -206,6 +266,7 @@ void UWeaponSelectionHUDWidget::ToggleTalentWidget(AUnitBase* Unit)
 		if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -241,6 +302,7 @@ void UWeaponSelectionHUDWidget::ToggleEffectTalentWidget(AUnitBase* Unit)
 		if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -352,6 +414,25 @@ void UWeaponSelectionHUDWidget::UpdateSelection()
 		else
 		{
 			CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// Update Talent Tree Widget if visible
+	if (TalentTreeWidgetInstance && TalentTreeWidgetInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		if (SelectedUnitsWithWeapons.Num() > 0)
+		{
+			if (SelectedUnitsWithWeapons.Num() == 1 || !SelectedUnitsWithWeapons.Contains(TalentTreeWidgetInstance->GetTargetUnit()))
+			{
+				if (TalentTreeWidgetInstance->GetTargetUnit() != SelectedUnitsWithWeapons[0])
+				{
+					TalentTreeWidgetInstance->SetTargetUnit(SelectedUnitsWithWeapons[0]);
+				}
+			}
+		}
+		else
+		{
+			TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }

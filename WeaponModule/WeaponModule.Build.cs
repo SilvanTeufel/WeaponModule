@@ -55,7 +55,8 @@ public class WeaponModule : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore"
+				"SlateCore",
+				"InputCore"
 			}
 			);
 		

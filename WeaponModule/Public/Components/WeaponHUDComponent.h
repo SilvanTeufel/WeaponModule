@@ -62,4 +62,10 @@ public:
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
 	void Server_ResetCrowdControlTalents(UWeaponComponent* WeaponComp);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_InvestInTalentTreeNode(UWeaponComponent* WeaponComp, FName NodeId);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
+	void Server_ResetTalentTree(UWeaponComponent* WeaponComp);
 };

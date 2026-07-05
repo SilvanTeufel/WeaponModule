@@ -93,6 +93,8 @@ void UWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UWeaponComponent, EffectAreas);
 	DOREPLIFETIME(UWeaponComponent, EffectAreaTalentPoints);
 	DOREPLIFETIME(UWeaponComponent, CrowdControl);
+	DOREPLIFETIME(UWeaponComponent, TalentTreeNodes);
+	DOREPLIFETIME(UWeaponComponent, TalentTreeSpentPoints);
 }
 
 void UWeaponComponent::OnRep_CurrentWeaponIndex()
@@ -282,14 +284,19 @@ bool UWeaponComponent::PurchaseUpgrade(FWeaponUpgrade Upgrade)
 		return false;
 	}
 
+	// Punkte abziehen
+	WeaponAttributes->SetAttributeWeaponTalentPoints(AvailablePoints - Upgrade.Cost);
+
+	return ApplyWeaponUpgradeEffect(Upgrade);
+}
+
+bool UWeaponComponent::ApplyWeaponUpgradeEffect(const FWeaponUpgrade& Upgrade)
+{
 	UAbilitySystemComponent* ASC = GetOwner()->FindComponentByClass<UAbilitySystemComponent>();
 	if (!ASC)
 	{
 		return false;
 	}
-
-	// Punkte abziehen
-	WeaponAttributes->SetAttributeWeaponTalentPoints(AvailablePoints - Upgrade.Cost);
 
     // Increment Level Attribute (Raw points invested)
     float NewLevel = 0.0f;
@@ -596,6 +603,17 @@ void UWeaponComponent::Server_InvestInCrowdControlTalent_Implementation(ECrowdCo
 		return;
 	}
 
+	if (!ApplyCrowdControlTalentLevel(Talent))
+	{
+		return;
+	}
+
+	CrowdControl.SpentPoints += CrowdControlTalentCost;
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
+}
+
+bool UWeaponComponent::ApplyCrowdControlTalentLevel(ECrowdControlTalent Talent)
+{
 	switch (Talent)
 	{
 	case ECrowdControlTalent::Range:      CrowdControl.RangeLevel++;      break;
@@ -604,11 +622,9 @@ void UWeaponComponent::Server_InvestInCrowdControlTalent_Implementation(ECrowdCo
 	case ECrowdControlTalent::MaxTargets: CrowdControl.MaxTargetsLevel++; break;
 	case ECrowdControlTalent::Height:     CrowdControl.HeightLevel++;     break;
 	case ECrowdControlTalent::Cooldown:   CrowdControl.CooldownLevel++;   break;
-	default: return;
+	default: return false;
 	}
-
-	CrowdControl.SpentPoints += CrowdControlTalentCost;
-	SyncAttributesFromWeapon(CurrentWeaponIndex);
+	return true;
 }
 
 void UWeaponComponent::Server_ResetCrowdControlTalents_Implementation()
@@ -643,6 +659,331 @@ float UWeaponComponent::GetCrowdControlHalfAngleDeg() const { return CrowdContro
 int32 UWeaponComponent::GetCrowdControlMaxTargets() const { return CrowdControl.GetEffectiveMaxTargets(); }
 float UWeaponComponent::GetCrowdControlHalfHeight() const { return CrowdControl.GetEffectiveHalfHeight(); }
 float UWeaponComponent::GetCrowdControlCooldown() const   { return CrowdControl.GetEffectiveCooldown(); }
+
+// ---------------------------------------------------------------------------
+//  Radial Talent Tree
+// ---------------------------------------------------------------------------
+
+float UWeaponComponent::GetAvailableTalentTreePoints() const
+{
+	int32 Level = 0;
+	if (ALevelUnit* LevelUnit = Cast<ALevelUnit>(GetOwner()))
+	{
+		Level = LevelUnit->GetCharacterLevel();
+	}
+	const int32 Divisor = FMath::Max(1, TalentTreeLevelDivisor);
+	const float Granted = StartTalentTreePoints + (float)(Level / Divisor);
+	return FMath::Max(0.f, Granted - TalentTreeSpentPoints);
+}
+
+int32 UWeaponComponent::GetTalentTreeNodePoints(FName NodeId) const
+{
+	for (const FTalentTreeNodeState& State : TalentTreeNodes)
+	{
+		if (State.NodeId == NodeId)
+		{
+			return State.Points;
+		}
+	}
+	return 0;
+}
+
+const FTalentTreeNodeRow* UWeaponComponent::FindTalentTreeRow(FName NodeId) const
+{
+	if (!TalentTreeDataTable || NodeId.IsNone())
+	{
+		return nullptr;
+	}
+	return TalentTreeDataTable->FindRow<FTalentTreeNodeRow>(NodeId, TEXT("TalentTree"), /*bWarnIfMissing=*/false);
+}
+
+bool UWeaponComponent::IsTalentTreeNodeUnlocked(FName NodeId) const
+{
+	const FTalentTreeNodeRow* Row = FindTalentTreeRow(NodeId);
+	if (!Row)
+	{
+		return false;
+	}
+	if (Row->PrevId.IsNone())
+	{
+		return true; // root node
+	}
+	const FTalentTreeNodeRow* Parent = FindTalentTreeRow(Row->PrevId);
+	if (!Parent)
+	{
+		return true; // dangling parent reference -> don't hard-block the node
+	}
+	return GetTalentTreeNodePoints(Row->PrevId) >= FMath::Max(1, Parent->MaxPoints);
+}
+
+bool UWeaponComponent::CanInvestInTalentTreeNode(FName NodeId) const
+{
+	const FTalentTreeNodeRow* Row = FindTalentTreeRow(NodeId);
+	if (!Row)
+	{
+		return false;
+	}
+	if (GetTalentTreeNodePoints(NodeId) >= FMath::Max(1, Row->MaxPoints))
+	{
+		return false;
+	}
+	if (!IsTalentTreeNodeUnlocked(NodeId))
+	{
+		return false;
+	}
+	const float Cost = Row->PointCost > 0 ? (float)Row->PointCost : TalentTreePointCost;
+	return GetAvailableTalentTreePoints() >= Cost;
+}
+
+FWeaponUpgrade UWeaponComponent::MakeWeaponUpgrade(EWeaponTalentType Type) const
+{
+	FWeaponUpgrade U;
+	U.Cost = 1;
+
+	switch (Type)
+	{
+	case EWeaponTalentType::Damage:
+		U.Name          = FText::FromString(TEXT("Damage"));
+		U.Attribute     = UWeaponAttributeSet::GetDamageMultiplierAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetDamageTalentLevelAttribute();
+		U.ModifierValue = TreeDamageModifierValue;
+		U.ModifierOp    = EGameplayModOp::Additive;
+		break;
+	case EWeaponTalentType::Cooldown:
+		U.Name          = FText::FromString(TEXT("Cooldown"));
+		U.Attribute     = UWeaponAttributeSet::GetCooldownMultiplierAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetCooldownTalentLevelAttribute();
+		U.ModifierValue = TreeCooldownModifierValue;
+		U.ModifierOp    = EGameplayModOp::Multiplicitive;
+		break;
+	case EWeaponTalentType::FireRate:
+		U.Name          = FText::FromString(TEXT("Fire Rate"));
+		U.Attribute     = UWeaponAttributeSet::GetFireRateMultiplierAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetFireRateTalentLevelAttribute();
+		U.ModifierValue = TreeFireRateModifierValue;
+		U.ModifierOp    = EGameplayModOp::Multiplicitive;
+		break;
+	case EWeaponTalentType::Reload:
+		U.Name          = FText::FromString(TEXT("Reload Speed"));
+		U.Attribute     = UWeaponAttributeSet::GetReloadSpeedMultiplierAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetReloadSpeedTalentLevelAttribute();
+		U.ModifierValue = TreeReloadModifierValue;
+		U.ModifierOp    = EGameplayModOp::Multiplicitive;
+		break;
+	case EWeaponTalentType::Pierce:
+		U.Name          = FText::FromString(TEXT("Pierce"));
+		U.Attribute     = UWeaponAttributeSet::GetPierceExtraCountAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetPierceTalentLevelAttribute();
+		U.ModifierValue = TreePierceModifierValue;
+		U.ModifierOp    = EGameplayModOp::Additive;
+		break;
+	case EWeaponTalentType::Projectile:
+		U.Name          = FText::FromString(TEXT("Multi-Shot"));
+		U.Attribute     = UWeaponAttributeSet::GetProjectileExtraCountAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetProjectileTalentLevelAttribute();
+		U.ModifierValue = TreeProjectileModifierValue;
+		U.ModifierOp    = EGameplayModOp::Additive;
+		break;
+	case EWeaponTalentType::MaxAmmo:
+		U.Name          = FText::FromString(TEXT("Max Ammo"));
+		U.Attribute     = UWeaponAttributeSet::GetMaxAmmoAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetMaxAmmoTalentLevelAttribute();
+		U.ModifierValue = TreeAmmoModifierValue;
+		U.ModifierOp    = EGameplayModOp::Additive;
+		break;
+	case EWeaponTalentType::Magazines:
+		U.Name          = FText::FromString(TEXT("Magazines"));
+		U.Attribute     = UWeaponAttributeSet::GetMaxMagazinesAttribute();
+		U.LevelAttribute= UWeaponAttributeSet::GetAmountMagazinesTalentLevelAttribute();
+		U.ModifierValue = TreeMagazinesModifierValue;
+		U.ModifierOp    = EGameplayModOp::Additive;
+		break;
+	default:
+		break;
+	}
+
+	return U;
+}
+
+bool UWeaponComponent::ApplyTalentTreeNodeEffect(const FTalentTreeNodeRow& Row)
+{
+	// NOTE ON SCOPE: CrowdControl and EffectArea effects are unit-wide (stored on the component).
+	// WeaponTalent and ProjectileEffect effects are written into the CURRENTLY equipped weapon's
+	// FWeaponData, so on multi-weapon units those tree bonuses follow the equipped weapon. The tree
+	// node state + points are unit-wide. For single-weapon units (the common case) this is invisible.
+	switch (Row.TalentType)
+	{
+	case ETalentTreeCategory::WeaponTalent:
+	{
+		// Stacking talent: always applies (unless there is no ASC / level attribute).
+		return ApplyWeaponUpgradeEffect(MakeWeaponUpgrade(Row.WeaponTalent));
+	}
+	case ETalentTreeCategory::CrowdControlTalent:
+	{
+		if (ApplyCrowdControlTalentLevel(Row.CrowdControlTalent))
+		{
+			SyncAttributesFromWeapon(CurrentWeaponIndex);
+			return true;
+		}
+		return false;
+	}
+	case ETalentTreeCategory::EffectAreaTalent:
+	{
+		if (!EffectAreas.IsValidIndex(Row.EffectAreaIndex))
+		{
+			return false;
+		}
+		FEffectAreaData& Area = EffectAreas[Row.EffectAreaIndex];
+		bool bApplied = false;
+		switch (Row.EffectAreaAction)
+		{
+		case EEffectAreaTalentAction::InvestRadius:
+			Area.RadiusInvestments++;
+			bApplied = true;
+			break;
+		case EEffectAreaTalentAction::InvestDamage:
+			Area.DamageInvestments++;
+			bApplied = true;
+			break;
+		case EEffectAreaTalentAction::ToggleEffect:
+			if (Area.PossibleEffects.IsValidIndex(Row.EffectAreaTalentIndex)
+				&& !Area.SelectedTalentIndices.Contains(Row.EffectAreaTalentIndex)
+				&& Area.SelectedTalentIndices.Num() < MaxAreaEffects)
+			{
+				Area.SelectedTalentIndices.Add(Row.EffectAreaTalentIndex);
+				bApplied = true;
+			}
+			break;
+		default:
+			break;
+		}
+		if (!bApplied)
+		{
+			return false; // nothing changed -> caller must not charge a point
+		}
+		EffectAreas[Row.EffectAreaIndex] = Area; // force replication of the array element
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case ETalentTreeCategory::ProjectileEffect:
+	{
+		if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex))
+		{
+			return false;
+		}
+		FWeaponData& Data = AvailableWeapons[CurrentWeaponIndex];
+		const int32 Index = Row.EffectAreaIndex;
+		if (!Data.EffectTalents.IsValidIndex(Index))
+		{
+			return false;
+		}
+		if (Data.SelectedEffectIndex1 == Index || Data.SelectedEffectIndex2 == Index || Data.SelectedEffectIndex3 == Index)
+		{
+			return false; // already selected
+		}
+		if (Data.SelectedEffectIndex1 == -1)      WeaponAttributes->SetAttributeSelectedEffectIndex((float)Index);
+		else if (Data.SelectedEffectIndex2 == -1) WeaponAttributes->SetAttributeSelectedEffectIndex2((float)Index);
+		else if (Data.SelectedEffectIndex3 == -1) WeaponAttributes->SetAttributeSelectedEffectIndex3((float)Index);
+		else return false; // all three effect slots occupied
+		SaveAttributesToWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	default:
+		break;
+	}
+	return false;
+}
+
+void UWeaponComponent::Server_InvestInTalentTreeNode_Implementation(FName NodeId)
+{
+	const FTalentTreeNodeRow* Row = FindTalentTreeRow(NodeId);
+	if (!Row)
+	{
+		return;
+	}
+
+	const int32 MaxPts = FMath::Max(1, Row->MaxPoints);
+	if (GetTalentTreeNodePoints(NodeId) >= MaxPts)
+	{
+		return; // node already full
+	}
+	if (!IsTalentTreeNodeUnlocked(NodeId))
+	{
+		return; // prerequisite not satisfied
+	}
+
+	const float Cost = Row->PointCost > 0 ? (float)Row->PointCost : TalentTreePointCost;
+	if (GetAvailableTalentTreePoints() < Cost)
+	{
+		return; // not enough tree points
+	}
+
+	// Apply the concrete underlying talent (no per-system point cost).
+	// If nothing actually changed (e.g. all projectile slots occupied, effect already
+	// selected), do NOT charge the player or bump the node.
+	if (!ApplyTalentTreeNodeEffect(*Row))
+	{
+		return;
+	}
+
+	// Book-keeping: bump the node's invested count and spend the tree points.
+	bool bFound = false;
+	for (FTalentTreeNodeState& State : TalentTreeNodes)
+	{
+		if (State.NodeId == NodeId)
+		{
+			State.Points++;
+			bFound = true;
+			break;
+		}
+	}
+	if (!bFound)
+	{
+		FTalentTreeNodeState NewState;
+		NewState.NodeId = NodeId;
+		NewState.Points = 1;
+		TalentTreeNodes.Add(NewState);
+	}
+
+	TalentTreeSpentPoints += Cost;
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
+}
+
+void UWeaponComponent::Server_ResetTalentTree_Implementation()
+{
+	// Refund all tree points and clear per-node state.
+	TalentTreeNodes.Empty();
+	TalentTreeSpentPoints = 0.f;
+
+	// The tree drives the underlying talent EFFECTS but pays only from its own pool, so it never
+	// debited the weapon / effect / crowd-control / effect-area point pools. The per-system resets
+	// below zero the effect state, but they ALSO credit those pools based on the invested levels,
+	// which would mint free points the tree never charged. Snapshot the spendable pools first and
+	// restore them afterwards so ONLY the effects are cleared, not the currencies.
+	const float SavedWeaponTalentPoints  = WeaponAttributes ? WeaponAttributes->GetWeaponTalentPoints()  : 0.f;
+	const float SavedEffectTalentPoints  = WeaponAttributes ? WeaponAttributes->GetEffectTalentPoints()  : 0.f;
+	const float SavedCrowdControlSpent   = CrowdControl.SpentPoints;
+	const float SavedEffectAreaTalentPts = EffectAreaTalentPoints;
+
+	Server_ResetCurrentWeaponTalents_Implementation();
+	Server_ResetCrowdControlTalents_Implementation();
+	for (int32 i = 0; i < EffectAreas.Num(); ++i)
+	{
+		Server_ResetEffectAreaTalents_Implementation(i);
+	}
+
+	// Restore the currencies (no minting, no loss for a pure-tree build).
+	if (WeaponAttributes)
+	{
+		WeaponAttributes->SetAttributeWeaponTalentPoints(SavedWeaponTalentPoints);
+		WeaponAttributes->SetAttributeEffectTalentPoints(SavedEffectTalentPoints);
+	}
+	CrowdControl.SpentPoints = SavedCrowdControlSpent;
+	EffectAreaTalentPoints   = SavedEffectAreaTalentPts;
+
+	SaveAttributesToWeapon(CurrentWeaponIndex);
+	SyncAttributesFromWeapon(CurrentWeaponIndex);
+}
 
 void UWeaponComponent::OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData)
 {

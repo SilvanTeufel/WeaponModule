@@ -1,0 +1,80 @@
+// Copyright 2026 Silvan Teufel / Teufel-Engineering.com All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/Widget.h"
+#include "TalentTreeWidget.generated.h"
+
+class AUnitBase;
+class UWeaponComponent;
+class STalentTreeWidget;
+
+/**
+ * UMG wrapper that hosts the radial STalentTreeWidget (Slate) and bridges it to the
+ * replicated UWeaponComponent talent-tree state. Add it to any UPanelWidget and drive it
+ * with SetTargetUnit() exactly like the other talent widgets.
+ */
+UCLASS()
+class WEAPONMODULE_API UTalentTreeWidget : public UWidget
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
+	void SetTargetUnit(AUnitBase* InUnit);
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|UI")
+	AUnitBase* GetTargetUnit() const { return TargetUnit; }
+
+	// --- Style ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	float RingSpacing = 90.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	float NodeRadius = 26.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style", meta = (ClampMin = "0.0"))
+	float TooltipDelaySeconds = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	FLinearColor LockedColor = FLinearColor(0.10f, 0.10f, 0.12f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	FLinearColor AvailableColor = FLinearColor(0.20f, 0.65f, 1.00f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	FLinearColor PartialColor = FLinearColor(0.95f, 0.75f, 0.15f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	FLinearColor FullColor = FLinearColor(0.20f, 0.85f, 0.35f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	FLinearColor LinkColor = FLinearColor(0.35f, 0.35f, 0.40f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
+	FLinearColor RingColor = FLinearColor(1.f, 1.f, 1.f, 0.06f);
+
+	// --- UWidget interface ---
+	virtual void SynchronizeProperties() override;
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+
+protected:
+	virtual TSharedRef<SWidget> RebuildWidget() override;
+
+	UWeaponComponent* GetWeaponComponent() const;
+
+	/** Rebuild the node model from the target's TalentTreeDataTable. */
+	void RefreshNodes();
+
+	// Slate live-state / action callbacks
+	int32 HandleGetNodePoints(FName NodeId) const;
+	int32 HandleGetAvailablePoints() const;
+	bool HandleIsUnlocked(FName NodeId) const;
+	void HandleInvest(FName NodeId);
+
+	UPROPERTY()
+	AUnitBase* TargetUnit = nullptr;
+
+	TSharedPtr<STalentTreeWidget> MyTalentTree;
+};

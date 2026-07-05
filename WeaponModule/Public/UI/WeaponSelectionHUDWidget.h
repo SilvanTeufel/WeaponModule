@@ -41,6 +41,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Config")
 	TSubclassOf<class UCrowdControlTalentWidget> CrowdControlTalentWidgetClass;
 
+	/** Optional: BP subclass of the radial talent-tree widget. If unset, the C++ UTalentTreeWidget is used. */
+	UPROPERTY(EditAnywhere, Category = "Config")
+	TSubclassOf<class UTalentTreeWidget> TalentTreeWidgetClass;
+
 	UPROPERTY(EditAnywhere, Category = "Config")
 	int32 MaxDisplayedUnits = 3;
 
@@ -69,8 +73,11 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UPanelWidget* EffectAreaTalentContainer;
 
-	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	UPROPERTY(meta = (BindWidget))
 	class UPanelWidget* CrowdControlTalentContainer;
+
+	UPROPERTY(meta = (BindWidget))
+	class UPanelWidget* TalentTreeContainer;
 
 	UPROPERTY()
 	TArray<UWeaponHUDWidget*> WeaponHUDWidgets;
@@ -87,6 +94,9 @@ protected:
 	UPROPERTY()
 	class UCrowdControlTalentWidget* CrowdControlTalentWidgetInstance;
 
+	UPROPERTY()
+	class UTalentTreeWidget* TalentTreeWidgetInstance;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleTalentWidget(class AUnitBase* Unit);
@@ -99,6 +109,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleCrowdControlTalentWidget(class AUnitBase* Unit);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
+	void ToggleTalentTreeWidget(class AUnitBase* Unit);
 
 protected:
 

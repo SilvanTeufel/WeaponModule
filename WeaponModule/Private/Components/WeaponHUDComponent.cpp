@@ -83,3 +83,13 @@ void UWeaponHUDComponent::Server_ResetCrowdControlTalents_Implementation(UWeapon
 {
 	if (WeaponComp) WeaponComp->Server_ResetCrowdControlTalents();
 }
+
+void UWeaponHUDComponent::Server_InvestInTalentTreeNode_Implementation(UWeaponComponent* WeaponComp, FName NodeId)
+{
+	if (WeaponComp) WeaponComp->Server_InvestInTalentTreeNode(NodeId);
+}
+
+void UWeaponHUDComponent::Server_ResetTalentTree_Implementation(UWeaponComponent* WeaponComp)
+{
+	if (WeaponComp) WeaponComp->Server_ResetTalentTree();
+}
