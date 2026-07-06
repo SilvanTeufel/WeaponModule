@@ -42,6 +42,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* ToggleTalentTreeButton;
 
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UButton* ToggleTalentChooserButton;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon|UI")
 	class AUnitBase* CurrentUnit;
 
@@ -59,6 +62,9 @@ protected:
 
 	UFUNCTION()
 	void OnToggleTalentTreeClicked();
+
+	UFUNCTION()
+	void OnToggleTalentChooserClicked();
 
 	// Health
 	UPROPERTY(meta = (BindWidget))

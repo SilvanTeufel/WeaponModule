@@ -43,6 +43,11 @@ void UWeaponHUDWidget::NativeConstruct()
 	{
 		ToggleTalentTreeButton->OnClicked.AddDynamic(this, &UWeaponHUDWidget::OnToggleTalentTreeClicked);
 	}
+
+	if (ToggleTalentChooserButton)
+	{
+		ToggleTalentChooserButton->OnClicked.AddDynamic(this, &UWeaponHUDWidget::OnToggleTalentChooserClicked);
+	}
 }
 
 void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
@@ -390,6 +395,35 @@ void UWeaponHUDWidget::OnToggleTalentTreeClicked()
 		if (UWeaponSelectionHUDWidget* SelectionWidget = Cast<UWeaponSelectionHUDWidget>(CurrentOuter))
 		{
 			SelectionWidget->ToggleTalentTreeWidget(CurrentUnit);
+			return;
+		}
+		CurrentOuter = CurrentOuter->GetOuter();
+	}
+}
+
+void UWeaponHUDWidget::OnToggleTalentChooserClicked()
+{
+	if (!CurrentUnit) return;
+
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+		{
+			if (HUDComp->WeaponSelectionWidgetInstance)
+			{
+				HUDComp->WeaponSelectionWidgetInstance->ToggleTalentChooserWidget(CurrentUnit);
+				return;
+			}
+		}
+	}
+
+	// Fallback - Search in the Outer hierarchy
+	UObject* CurrentOuter = GetOuter();
+	while (CurrentOuter)
+	{
+		if (UWeaponSelectionHUDWidget* SelectionWidget = Cast<UWeaponSelectionHUDWidget>(CurrentOuter))
+		{
+			SelectionWidget->ToggleTalentChooserWidget(CurrentUnit);
 			return;
 		}
 		CurrentOuter = CurrentOuter->GetOuter();

@@ -375,9 +375,6 @@ bool UWeaponComponent::ApplyWeaponUpgradeEffect(const FWeaponUpgrade& Upgrade)
 	SaveAttributesToWeapon(CurrentWeaponIndex);
 	SyncAttributesFromWeapon(CurrentWeaponIndex);
 
-	UE_LOG(LogTemp, Log, TEXT("[WeaponModule] WeaponComponent: Purchased upgrade %s. New Level: %.0f, Tier: %.0f, New Value: %.2f"), 
-		*Upgrade.Name.ToString(), NewLevel, EffectiveTier, NewValue);
-	
 	return true;
 }
 

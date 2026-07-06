@@ -37,6 +37,7 @@ DECLARE_DELEGATE_RetVal_OneParam(int32, FTalentTreeGetNodePoints, FName);
 DECLARE_DELEGATE_RetVal(int32, FTalentTreeGetAvailablePoints);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FTalentTreeIsUnlocked, FName);
 DECLARE_DELEGATE_OneParam(FTalentTreeOnInvest, FName);
+DECLARE_DELEGATE(FTalentTreeOnReset);
 
 /**
  * A radial (ring-shaped) talent tree rendered entirely in Slate.
@@ -58,6 +59,14 @@ public:
 		, _FullColor(FLinearColor(0.20f, 0.85f, 0.35f, 1.f))
 		, _LinkColor(FLinearColor(0.35f, 0.35f, 0.40f, 1.f))
 		, _RingColor(FLinearColor(1.f, 1.f, 1.f, 0.06f))
+		, _NodeFontSize(9)
+		, _CountFontSize(8)
+		, _TooltipTitleFontSize(16)
+		, _TooltipBodyFontSize(13)
+		, _TooltipMaxWidth(420.f)
+		, _TooltipPadding(12.f)
+		, _TooltipIconSize(40.f)
+		, _TooltipIconGap(8.f)
 	{}
 		SLATE_ARGUMENT(float, RingSpacing)
 		SLATE_ARGUMENT(float, NodeRadius)
@@ -68,10 +77,19 @@ public:
 		SLATE_ARGUMENT(FLinearColor, FullColor)
 		SLATE_ARGUMENT(FLinearColor, LinkColor)
 		SLATE_ARGUMENT(FLinearColor, RingColor)
+		SLATE_ARGUMENT(int32, NodeFontSize)
+		SLATE_ARGUMENT(int32, CountFontSize)
+		SLATE_ARGUMENT(int32, TooltipTitleFontSize)
+		SLATE_ARGUMENT(int32, TooltipBodyFontSize)
+		SLATE_ARGUMENT(float, TooltipMaxWidth)
+		SLATE_ARGUMENT(float, TooltipPadding)
+		SLATE_ARGUMENT(float, TooltipIconSize)
+		SLATE_ARGUMENT(float, TooltipIconGap)
 		SLATE_EVENT(FTalentTreeGetNodePoints, OnGetNodePoints)
 		SLATE_EVENT(FTalentTreeGetAvailablePoints, OnGetAvailablePoints)
 		SLATE_EVENT(FTalentTreeIsUnlocked, OnIsUnlocked)
 		SLATE_EVENT(FTalentTreeOnInvest, OnInvest)
+		SLATE_EVENT(FTalentTreeOnReset, OnReset)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -85,6 +103,7 @@ public:
 	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
@@ -94,6 +113,13 @@ private:
 	int32 GetNodePoints(FName Id) const;
 	bool IsUnlocked(FName Id) const;
 	void RefreshTooltip();
+	FSlateRect ResetButtonRect(const FVector2D& LocalSize) const;
+
+	/** Drives hover detection + timing every frame from the cursor position (reliable under Slate global invalidation). */
+	EActiveTimerReturnType HandleActiveTimer(double InCurrentTime, float InDeltaTime);
+
+	/** Draws the hover tooltip directly (no child widget) so it renders reliably. */
+	void PaintNodeTooltip(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
 	// Model
 	TArray<FTalentTreeSlateNode> Nodes;
@@ -110,12 +136,19 @@ private:
 	FLinearColor FullColor;
 	FLinearColor LinkColor;
 	FLinearColor RingColor;
+	int32 TooltipTitleFontSize = 16;
+	int32 TooltipBodyFontSize = 13;
+	float TooltipMaxWidth = 420.f;
+	float TooltipPadding = 12.f;
+	float TooltipIconSize = 40.f;
+	float TooltipIconGap = 8.f;
 
 	// Delegates
 	FTalentTreeGetNodePoints OnGetNodePointsDelegate;
 	FTalentTreeGetAvailablePoints OnGetAvailablePointsDelegate;
 	FTalentTreeIsUnlocked OnIsUnlockedDelegate;
 	FTalentTreeOnInvest OnInvestDelegate;
+	FTalentTreeOnReset OnResetDelegate;
 
 	// Render resources
 	FSlateBrush NodeBackgroundBrush;
@@ -126,6 +159,13 @@ private:
 	int32 HoveredNodeIndex = INDEX_NONE;
 	float HoverElapsed = 0.f;
 	FVector2D LocalMousePos = FVector2D::ZeroVector;
+	mutable FGeometry CachedGeometry;
+
+	// Pan (drag the whole tree when it is larger than the view)
+	FVector2D PanOffset = FVector2D::ZeroVector;
+	bool bIsPanning = false;
+	FVector2D PanMouseStart = FVector2D::ZeroVector;
+	FVector2D PanOffsetStart = FVector2D::ZeroVector;
 
 	// Tooltip widgets
 	TSharedPtr<SBox> TooltipContainer;

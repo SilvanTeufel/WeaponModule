@@ -45,6 +45,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Config")
 	TSubclassOf<class UTalentTreeWidget> TalentTreeWidgetClass;
 
+	/** BP widget class of the RTSUnitTemplate TalentChooser (e.g. BP_TalentChooser) to embed. */
+	UPROPERTY(EditAnywhere, Category = "Config")
+	TSubclassOf<class UTalentChooser> TalentChooserWidgetClass;
+
 	UPROPERTY(EditAnywhere, Category = "Config")
 	int32 MaxDisplayedUnits = 3;
 
@@ -79,6 +83,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UPanelWidget* TalentTreeContainer;
 
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UPanelWidget* TalentChooserContainer;
+
 	UPROPERTY()
 	TArray<UWeaponHUDWidget*> WeaponHUDWidgets;
 
@@ -97,6 +104,9 @@ protected:
 	UPROPERTY()
 	class UTalentTreeWidget* TalentTreeWidgetInstance;
 
+	UPROPERTY()
+	class UTalentChooser* TalentChooserWidgetInstance;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleTalentWidget(class AUnitBase* Unit);
@@ -112,6 +122,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleTalentTreeWidget(class AUnitBase* Unit);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
+	void ToggleTalentChooserWidget(class AUnitBase* Unit);
 
 protected:
 

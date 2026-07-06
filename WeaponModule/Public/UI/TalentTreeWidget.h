@@ -55,6 +55,34 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Style")
 	FLinearColor RingColor = FLinearColor(1.f, 1.f, 1.f, 0.06f);
 
+	// --- Text sizes ---
+	/** Font size of the per-node "invested/max" count. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Text", meta = (ClampMin = "4"))
+	int32 CountFontSize = 8;
+
+	/** Font size of the empty-state hint and the Reset button. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Text", meta = (ClampMin = "4"))
+	int32 NodeFontSize = 9;
+
+	// --- Tooltip ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Tooltip", meta = (ClampMin = "4"))
+	int32 TooltipTitleFontSize = 16;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Tooltip", meta = (ClampMin = "4"))
+	int32 TooltipBodyFontSize = 13;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Tooltip", meta = (ClampMin = "50"))
+	float TooltipMaxWidth = 420.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Tooltip", meta = (ClampMin = "0"))
+	float TooltipPadding = 12.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Tooltip", meta = (ClampMin = "0"))
+	float TooltipIconSize = 40.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Talent Tree|Tooltip", meta = (ClampMin = "0"))
+	float TooltipIconGap = 8.f;
+
 	// --- UWidget interface ---
 	virtual void SynchronizeProperties() override;
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
@@ -72,6 +100,7 @@ protected:
 	int32 HandleGetAvailablePoints() const;
 	bool HandleIsUnlocked(FName NodeId) const;
 	void HandleInvest(FName NodeId);
+	void HandleReset();
 
 	UPROPERTY()
 	AUnitBase* TargetUnit = nullptr;

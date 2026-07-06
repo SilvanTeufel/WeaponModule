@@ -22,10 +22,19 @@ TSharedRef<SWidget> UTalentTreeWidget::RebuildWidget()
 		.FullColor(FullColor)
 		.LinkColor(LinkColor)
 		.RingColor(RingColor)
+		.NodeFontSize(NodeFontSize)
+		.CountFontSize(CountFontSize)
+		.TooltipTitleFontSize(TooltipTitleFontSize)
+		.TooltipBodyFontSize(TooltipBodyFontSize)
+		.TooltipMaxWidth(TooltipMaxWidth)
+		.TooltipPadding(TooltipPadding)
+		.TooltipIconSize(TooltipIconSize)
+		.TooltipIconGap(TooltipIconGap)
 		.OnGetNodePoints(FTalentTreeGetNodePoints::CreateUObject(this, &UTalentTreeWidget::HandleGetNodePoints))
 		.OnGetAvailablePoints(FTalentTreeGetAvailablePoints::CreateUObject(this, &UTalentTreeWidget::HandleGetAvailablePoints))
 		.OnIsUnlocked(FTalentTreeIsUnlocked::CreateUObject(this, &UTalentTreeWidget::HandleIsUnlocked))
-		.OnInvest(FTalentTreeOnInvest::CreateUObject(this, &UTalentTreeWidget::HandleInvest));
+		.OnInvest(FTalentTreeOnInvest::CreateUObject(this, &UTalentTreeWidget::HandleInvest))
+		.OnReset(FTalentTreeOnReset::CreateUObject(this, &UTalentTreeWidget::HandleReset));
 
 	RefreshNodes();
 	return MyTalentTree.ToSharedRef();
@@ -146,4 +155,24 @@ void UTalentTreeWidget::HandleInvest(FName NodeId)
 	}
 
 	WC->Server_InvestInTalentTreeNode(NodeId);
+}
+
+void UTalentTreeWidget::HandleReset()
+{
+	UWeaponComponent* WC = GetWeaponComponent();
+	if (!WC)
+	{
+		return;
+	}
+
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+	{
+		if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+		{
+			HUDComp->Server_ResetTalentTree(WC);
+			return;
+		}
+	}
+
+	WC->Server_ResetTalentTree();
 }

@@ -331,9 +331,6 @@ void UShootAbility::SynchronizeContinuousCooldown()
 				// exakt die verbleibende Zeit des GAS-Cooldowns berücksichtigt.
 				float ContinuousDuration = Unit->ContinuousAttackDuration;
 				ActivationStartTime = GetWorld()->GetTimeSeconds() - (ContinuousDuration - MaxTimeRemaining);
-				
-				UE_LOG(LogTemp, Log, TEXT("[WeaponModule] Sync: Waffe %s, Rest-Cooldown: %.2fs, Neuer Timer gesetzt."), 
-					*WeaponTag.ToString(), MaxTimeRemaining);
 			}
 		}
 	}
