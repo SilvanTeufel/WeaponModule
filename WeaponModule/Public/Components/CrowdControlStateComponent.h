@@ -7,6 +7,24 @@
 #include "CrowdControlStateComponent.generated.h"
 
 class AUnitBase;
+class UInstancedStaticMeshComponent;
+
+/**
+ * Per-unit anchor for the ISM vertex-animation (VAT) clock freeze. Holds the captured "frozen elapsed"
+ * for the primary (StartTime custom-data idx 3) and secondary/transition (idx 7) VAT time terms, so the
+ * displayed frame is held while global Time keeps advancing. Re-anchor-detected: if the anim processor's
+ * StartTime ever changes (a state re-anchor slipped through) the elapsed is recaptured, so it always
+ * freezes whatever frame is currently showing.
+ */
+struct FISMFreezeAnchor
+{
+	bool  bHasPrim = false;
+	float PrimStart = 0.f;
+	float PrimElapsed = 0.f;
+	bool  bHasSec = false;
+	float SecStart = 0.f;
+	float SecElapsed = 0.f;
+};
 
 /**
  * Runtime helper component attached to a target AUnitBase by the Crowd-Control ability.
@@ -79,8 +97,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Weapon|CrowdControl")
 	bool IsAttackDisabled() const { return AttackDisableCount > 0; }
 
+	/** Per-frame helper: pause a unit's ISM vertex/VAT animation IN PLACE by holding its StartTime custom-data
+	 *  floats so (globalTime - StartTime) stays constant -> the material samples a fixed frame. No-op for
+	 *  skeletal units. Static so BOTH the server (this component's tick) and remote clients
+	 *  (ACrowdControlMarker::Tick) can drive it locally — ISM custom data is not replicated, so each machine
+	 *  freezes its own render. StartIdx/PrevStartIdx must match UUnitAnimationProcessor's
+	 *  StartTimeCustomDataIndex(=3) / PrevStartTimeCustomDataIndex(=7). */
+	static void HoldISMVertexClock(AUnitBase* Unit, float NowSeconds, FISMFreezeAnchor& Anchor,
+		int32 StartIdx = 3, int32 PrevStartIdx = 7);
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	AUnitBase* GetUnit() const;
@@ -104,6 +132,14 @@ private:
 	// rate=0 is needed because APerformanceUnit re-sets bPauseAnims=!visibility every tick (so Frozen alone
 	// can't pause a visible unit's skeletal animation); GlobalAnimRateScale is untouched by RTSUnitTemplate.
 	float CachedAnimRateScale = 1.f;
+
+	// Per-unit ISM VAT clock-freeze anchor (see FISMFreezeAnchor). Reset in FreezeInternal; consumed by the
+	// per-frame TickComponent while FreezeCount>0.
+	FISMFreezeAnchor ISMAnchor;
+
+	// Must match UUnitAnimationProcessor's StartTimeCustomDataIndex(=3) / PrevStartTimeCustomDataIndex(=7).
+	int32 StartTimeCustomDataIndex = 3;
+	int32 PrevStartTimeCustomDataIndex = 7;
 
 	// Kept so we can cancel pending restores when the component / unit goes away.
 	TArray<FTimerHandle> ActiveTimers;

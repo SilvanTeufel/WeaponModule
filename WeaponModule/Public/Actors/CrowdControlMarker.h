@@ -6,6 +6,7 @@
 #include "Engine/EngineTypes.h" // EObjectTypeQuery
 #include "GameFramework/Actor.h"
 #include "Components/WeaponComponent.h" // FCrowdControlData (per-ability base values)
+#include "Components/CrowdControlStateComponent.h" // FISMFreezeAnchor + HoldISMVertexClock (client ISM freeze)
 #include "CrowdControlMarker.generated.h"
 
 class UPointLightComponent;
@@ -67,6 +68,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void Tick(float DeltaSeconds) override; // remote-client per-frame ISM VAT clock hold (freeze fields)
 
 	/** Configure a transient one-shot marker (no field logic). */
 	void InitMarker(ECrowdControlMarkerMode InMode, ECrowdControlShape InShape, float InRadius, float InHalfAngleDeg, const FLinearColor& InColor, float InLightIntensity);
@@ -134,6 +136,15 @@ public:
 	/** How often (seconds) the field re-detects and re-applies effects. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl")
 	float UpdateInterval = 0.1f;
+
+	/** ISM vertex-animation (VAT) freeze: which per-instance custom-data floats hold the animation StartTime.
+	 *  MUST match UUnitAnimationProcessor's StartTimeCustomDataIndex (default 3) / PrevStartTimeCustomDataIndex
+	 *  (default 7). Only change if you remapped those indices on the processor. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl")
+	int32 StartTimeCustomDataIndex = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CrowdControl")
+	int32 PrevStartTimeCustomDataIndex = 7;
 
 	/** Cone only: extra pitch (deg, negative = down) of the spot light relative to the unit's aim.
 	 *  0 = points exactly along the unit direction; set negative to tilt the beam down onto the ground. */
@@ -247,4 +258,6 @@ private:
 	FTimerHandle ClientVisualTimer;
 	// Units this client froze -> their pre-freeze GlobalAnimRateScale (to restore on exit).
 	TMap<TWeakObjectPtr<AUnitBase>, float> ClientFrozenRates;
+	// Per-frozen-unit ISM VAT clock-freeze anchors (parallel to ClientFrozenRates), driven from Tick().
+	TMap<TWeakObjectPtr<AUnitBase>, FISMFreezeAnchor> ClientISMAnchors;
 };

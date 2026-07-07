@@ -8,11 +8,17 @@
 #include "MassEntityManager.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
-#include "Components/SkeletalMeshComponent.h" // GlobalAnimRateScale (skeletal anim freeze)
+#include "Components/SkeletalMeshComponent.h"          // GlobalAnimRateScale (skeletal anim freeze)
+#include "Components/InstancedStaticMeshComponent.h"   // ISM SetCustomDataValue / NumCustomDataFloats
+#include "Animations/UnitAnimationProcessor.h"         // FUnitAnimationFragment (Current/PrevStartTime)
+#include "Mass/MassUnitVisualFragments.h"              // FMassUnitVisualFragment (VisualInstances / bUseSkeletalMovement)
 
 UCrowdControlStateComponent::UCrowdControlStateComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	// Ticks per-frame ONLY between FreezeInternal/UnfreezeInternal to hold the ISM VAT clock (the material
+	// advances the vertex animation every frame, so a 10Hz timer would visibly stutter — this must be per-frame).
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetIsReplicatedByDefault(false); // server-only helper; the affected bools replicate via AUnitBase
 }
 
@@ -115,7 +121,11 @@ void UCrowdControlStateComponent::DisableAttackInternal()
 	// Drop the Attack/Chase/Run state tag + set the unit state to Idle (SetUnitState is immediate; the tag
 	// ops inside are deferred — the immediate strip above covers the lag). AttackStateProcessor never checks
 	// CanAttack, so only removing the tag stops an in-progress attack.
-	const bool bSwitched = Unit->SwitchEntityTagByState(UnitData::Idle, UnitData::Idle);
+	// FREEZE EXCEPTION: while frozen (FreezeCount>0) do NOT switch to Idle. The ISM vertex-animation freeze
+	// needs the unit to keep its CURRENT animation state so it freezes mid-motion (not snapped to Idle).
+	// FreezeInternal removes the primary state tags instead, leaving the enum with no primary tag —
+	// UnitClientTagSyncProcessor leaves that untouched (ComputeState->None is not applied) => no re-anchor.
+	const bool bSwitched = (FreezeCount == 0) ? Unit->SwitchEntityTagByState(UnitData::Idle, UnitData::Idle) : false;
 
 	UE_LOG(LogTemp, Warning, TEXT("[CC] DisableAttack '%s' CanAttack(actor)=%d clearedTarget=%d switchedIdle=%d State(after)=%d auth=%d"),
 		*Unit->GetName(), Unit->CanAttack, bClearedTarget, bSwitched, (int32)Unit->GetUnitState(), (int32)Unit->HasAuthority());
@@ -261,6 +271,29 @@ void UCrowdControlStateComponent::FreezeInternal()
 		Mesh->GlobalAnimRateScale = 0.f;
 	}
 
+	// ISM (vertex/VAT) freeze — two parts:
+	// (1) Prevent an animation RE-ANCHOR: remove the primary state tags so the unit has NONE. GetUnitState()
+	//     then stays put (UnitClientTagSyncProcessor's ComputeState returns None, which ApplyStateToActor
+	//     refuses to apply), so UUnitAnimationProcessor never sees a state change and never re-anchors the ISM
+	//     custom data — the slots stay on the current (mid-motion) pose. The unit is also already excluded from
+	//     the anim processor (CanMove=false -> StopMovement -> StopAnimation tag). We deliberately do NOT add a
+	//     Frozen/StopMovement CONTROL tag here (that path desynced clients — see UnfreezeInternal's note); we
+	//     only REMOVE tags, which replicates cleanly so remote clients suppress the re-anchor too.
+	// (2) The material still advances the frame from global Time, so the real clock freeze happens per-frame in
+	//     TickComponent via HoldISMVertexClock (holding the StartTime custom-data floats in place).
+	{
+		FMassEntityManager* EM = nullptr;
+		FMassEntityHandle EntityHandle;
+		if (Unit->GetMassEntityData(EM, EntityHandle) && EM && EM->IsEntityValid(EntityHandle))
+		{
+			EM->RemoveTagFromEntity(EntityHandle, FMassStateRunTag::StaticStruct());
+			EM->RemoveTagFromEntity(EntityHandle, FMassStateAttackTag::StaticStruct());
+			EM->RemoveTagFromEntity(EntityHandle, FMassStateChaseTag::StaticStruct());
+		}
+	}
+	ISMAnchor = FISMFreezeAnchor{};   // fresh capture for this freeze
+	SetComponentTickEnabled(true);     // start the per-frame ISM VAT clock hold
+
 	UE_LOG(LogTemp, Warning, TEXT("[CC] Freeze(anim) '%s' hasMesh=%d auth=%d"),
 		*Unit->GetName(), Unit->GetMesh() ? 1 : 0, (int32)Unit->HasAuthority());
 }
@@ -274,6 +307,32 @@ void UCrowdControlStateComponent::UnfreezeInternal()
 	if (USkeletalMeshComponent* Mesh = Unit->GetMesh())
 	{
 		Mesh->GlobalAnimRateScale = (CachedAnimRateScale > 0.f) ? CachedAnimRateScale : 1.f;
+	}
+
+	// Stop the ISM VAT clock hold (the material resumes advancing from the last-held frame).
+	SetComponentTickEnabled(false);
+
+	// CRITICAL: return the unit to a valid resting state. FreezeInternal left it in "limbo" — its old enum with
+	// NO primary state tag — so the ISM freeze could hold the mid-motion pose without re-anchoring. That is
+	// stable only WHILE frozen; on release the unit must get a real state again or it HANGS: no state
+	// processor's query matches a tag-less unit, so it neither moves, re-acquires, nor re-anchors its
+	// animation. Switch to Idle (exactly the state the pre-change freeze left it in), which also makes the anim
+	// processor re-anchor to the Idle clip. Switching to Idle drops the Detect tag, so re-add it (gated on the
+	// now-restored CanAttack — ReleaseAttackDisable runs before ReleaseFreeze) so the unit resumes acquiring.
+	// Skip entirely if the unit died while frozen.
+	if (Unit->GetUnitState() != UnitData::Dead)
+	{
+		Unit->SwitchEntityTagByState(UnitData::Idle, UnitData::Idle);
+
+		if (Unit->CanAttack)
+		{
+			FMassEntityManager* EM = nullptr;
+			FMassEntityHandle EntityHandle;
+			if (Unit->GetMassEntityData(EM, EntityHandle) && EM && EM->IsEntityValid(EntityHandle))
+			{
+				EM->AddTagToEntity(EntityHandle, FMassStateDetectTag::StaticStruct());
+			}
+		}
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[CC] Unfreeze(anim) '%s'"), *Unit->GetName());
@@ -350,10 +409,17 @@ void UCrowdControlStateComponent::ReassertDisable()
 		{
 			EM->RemoveTagFromEntity(EntityHandle, FMassStateAttackTag::StaticStruct());
 			EM->RemoveTagFromEntity(EntityHandle, FMassStateChaseTag::StaticStruct());
+			// While frozen, ALSO keep the Run tag stripped so RunStateProcessor can't flip the unit to Idle on
+			// arrival (velocity->0) — that would re-anchor the ISM animation off its held mid-motion pose.
+			if (FreezeCount > 0)
+			{
+				EM->RemoveTagFromEntity(EntityHandle, FMassStateRunTag::StaticStruct());
+			}
 		}
 		// Only re-switch if the unit slipped out of Idle (back into Attack/Chase) — re-fires
-		// SetUnitState(Idle) which resets the state and animation.
-		if (Unit->GetUnitState() != UnitData::Idle)
+		// SetUnitState(Idle) which resets the state and animation. NOT while frozen: the freeze deliberately
+		// keeps the unit's current animation state (no primary tag) so the ISM freeze holds the mid-motion pose.
+		if (FreezeCount == 0 && Unit->GetUnitState() != UnitData::Idle)
 		{
 			Unit->SwitchEntityTagByState(UnitData::Idle, UnitData::Idle);
 		}
@@ -405,4 +471,93 @@ void UCrowdControlStateComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 	FreezeCount = 0;
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void UCrowdControlStateComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// Server/host only (this component lives on the authority; remote clients drive their own copy from
+	// ACrowdControlMarker::Tick). Self-disable once the freeze is released; nothing to render on a dedicated
+	// server, so skip the per-instance writes there.
+	if (FreezeCount <= 0)
+	{
+		SetComponentTickEnabled(false);
+		return;
+	}
+	const UWorld* World = GetWorld();
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	HoldISMVertexClock(GetUnit(), World->GetTimeSeconds(), ISMAnchor, StartTimeCustomDataIndex, PrevStartTimeCustomDataIndex);
+}
+
+void UCrowdControlStateComponent::HoldISMVertexClock(AUnitBase* Unit, float NowSeconds, FISMFreezeAnchor& Anchor,
+	int32 StartIdx, int32 PrevStartIdx)
+{
+	if (!IsValid(Unit))
+	{
+		return;
+	}
+
+	FMassEntityManager* EM = nullptr;
+	FMassEntityHandle EntityHandle;
+	if (!(Unit->GetMassEntityData(EM, EntityHandle) && EM && EM->IsEntityValid(EntityHandle)))
+	{
+		return;
+	}
+
+	const FMassUnitVisualFragment* Visual = EM->GetFragmentDataPtr<FMassUnitVisualFragment>(EntityHandle);
+	const FUnitAnimationFragment*  Anim   = EM->GetFragmentDataPtr<FUnitAnimationFragment>(EntityHandle);
+	if (!Visual || !Anim || Visual->bUseSkeletalMovement)
+	{
+		return; // skeletal units freeze via GlobalAnimRateScale, not the VAT clock
+	}
+
+	// Resolve the rendered instance exactly like UUnitAnimationProcessor: prefer the visual fragment, fall back
+	// to the actor's own ISM (they can diverge under the pooled/shared ISM subsystem).
+	UInstancedStaticMeshComponent* ISM = nullptr;
+	int32 InstanceIndex = INDEX_NONE;
+	if (Visual->VisualInstances.Num() > 0)
+	{
+		ISM = Visual->VisualInstances[0].TargetISM.Get();
+		InstanceIndex = Visual->VisualInstances[0].InstanceIndex;
+	}
+	if (InstanceIndex == INDEX_NONE)
+	{
+		if (AMassUnitBase* MassUnit = Cast<AMassUnitBase>(Unit))
+		{
+			ISM = MassUnit->ISMComponent;
+			InstanceIndex = MassUnit->InstanceIndex;
+		}
+	}
+	if (!ISM || InstanceIndex == INDEX_NONE || ISM->NumCustomDataFloats <= FMath::Max(StartIdx, PrevStartIdx))
+	{
+		return;
+	}
+
+	// Hold (globalTime - StartTime) constant so the material samples a fixed VAT frame. Absolute recompute
+	// (StartTime = Now - Elapsed) => no floating-point drift. Elapsed is captured once from the anim fragment
+	// (which the excluded anim processor no longer updates); re-captured if StartTime ever changes (a re-anchor
+	// slipped through), so it always freezes whatever frame is currently showing. Primary = current animation
+	// (custom-data StartTime idx 3), secondary = the transition/prev animation (idx 7).
+	const float S = Anim->CurrentStartTime;
+	if (!Anchor.bHasPrim || S != Anchor.PrimStart)
+	{
+		Anchor.bHasPrim = true;
+		Anchor.PrimStart = S;
+		Anchor.PrimElapsed = NowSeconds - S;
+	}
+	ISM->SetCustomDataValue(InstanceIndex, StartIdx, NowSeconds - Anchor.PrimElapsed, /*bMarkRenderStateDirty*/ false);
+
+	const float P = Anim->PrevStartTime;
+	if (!Anchor.bHasSec || P != Anchor.SecStart)
+	{
+		Anchor.bHasSec = true;
+		Anchor.SecStart = P;
+		Anchor.SecElapsed = NowSeconds - P;
+	}
+	// Mark the render state dirty once per instance (this last write), covering both custom-data updates.
+	ISM->SetCustomDataValue(InstanceIndex, PrevStartIdx, NowSeconds - Anchor.SecElapsed, /*bMarkRenderStateDirty*/ true);
 }

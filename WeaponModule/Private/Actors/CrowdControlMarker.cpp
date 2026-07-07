@@ -63,7 +63,10 @@ static void CC_GatherCone(UWorld* World, const FVector& Origin, const FVector& D
 
 ACrowdControlMarker::ACrowdControlMarker()
 {
-	PrimaryActorTick.bCanEverTick = false; // the field is driven by world timers (robust against BP "Can Ever Tick" being off)
+	// Field detection/effect logic still runs on world timers (robust against BP "Can Ever Tick"); per-frame
+	// Tick is used ONLY by remote clients to hold the ISM VAT clock of frozen units (must be per-frame — the
+	// material advances the vertex animation every frame).
+	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 	SetReplicateMovement(false);
 
@@ -98,6 +101,34 @@ void ACrowdControlMarker::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(ACrowdControlMarker, MarkerColor);
 	DOREPLIFETIME(ACrowdControlMarker, LightIntensity);
 	DOREPLIFETIME(ACrowdControlMarker, bFreezeUnits);
+}
+
+void ACrowdControlMarker::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	// Remote clients only: hold the ISM vertex-animation (VAT) clock of the units this marker froze, so their
+	// material-driven animation freezes IN PLACE. The server/host does this via UCrowdControlStateComponent's
+	// tick; ISM custom data is not replicated, so each machine freezes its own render. The frozen SET (and its
+	// skeletal freeze) is maintained by the 0.1s ClientVisualFreezeTick; here we only pin the clock per frame.
+	if (HasAuthority() || !bFreezeUnits)
+	{
+		return;
+	}
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	const float Now = World->GetTimeSeconds();
+	for (const TPair<TWeakObjectPtr<AUnitBase>, float>& Pair : ClientFrozenRates)
+	{
+		if (AUnitBase* U = Pair.Key.Get())
+		{
+			UCrowdControlStateComponent::HoldISMVertexClock(U, Now, ClientISMAnchors.FindOrAdd(Pair.Key),
+				StartTimeCustomDataIndex, PrevStartTimeCustomDataIndex);
+		}
+	}
 }
 
 void ACrowdControlMarker::BeginPlay()
@@ -296,6 +327,7 @@ void ACrowdControlMarker::ClientVisualFreezeTick()
 			}
 		}
 		ClientFrozenRates.Remove(W);
+		ClientISMAnchors.Remove(W);
 	}
 }
 
@@ -312,6 +344,7 @@ void ACrowdControlMarker::RestoreAllClientFrozen()
 		}
 	}
 	ClientFrozenRates.Empty();
+	ClientISMAnchors.Empty();
 }
 
 void ACrowdControlMarker::UpdateRotateToMouse(AUnitBase* Unit)
@@ -566,9 +599,9 @@ void ACrowdControlMarker::ServerUpdateField()
 					// Freeze = stop moving + stop attacking (proven immediate fragment writes) AND pause
 					// the animation (Frozen tag + skeletal GlobalAnimRateScale=0). The move/attack holds
 					// guarantee the CC even if the tag doesn't take; HoldFreeze adds the animation pause.
+					CC->HoldFreeze();       // FIRST: FreezeCount>0 makes HoldAttackDisable skip its SwitchToIdle (ISM mid-motion freeze)
 					CC->HoldMovementDisable();
 					CC->HoldAttackDisable();
-					CC->HoldFreeze();
 				}
 				else
 				{
