@@ -121,6 +121,10 @@ private:
 	void FreezeInternal();
 	void UnfreezeInternal();
 
+	// Death handler: when the crowd-controlled unit dies, drop ALL holds immediately and clear the
+	// StopMovement/StopAnimation exclusion so the death animation plays at once (no freeze pose held).
+	void ReleaseFreezeForDeath();
+
 	int32 MovementDisableCount = 0;
 	int32 AttackDisableCount = 0;
 	int32 FreezeCount = 0;

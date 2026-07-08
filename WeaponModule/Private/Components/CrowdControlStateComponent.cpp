@@ -338,6 +338,52 @@ void UCrowdControlStateComponent::UnfreezeInternal()
 	UE_LOG(LogTemp, Warning, TEXT("[CC] Unfreeze(anim) '%s'"), *Unit->GetName());
 }
 
+void UCrowdControlStateComponent::ReleaseFreezeForDeath()
+{
+	AUnitBase* Unit = GetUnit();
+	if (!Unit || !Unit->HasAuthority()) return;
+	if (MovementDisableCount <= 0 && AttackDisableCount <= 0 && FreezeCount <= 0) return; // nothing held
+
+	// Stop the skeletal + ISM anim freeze. UnfreezeInternal skips its SwitchToIdle when the unit is Dead (so it
+	// won't stomp the Dead state) and disables the per-frame clock-hold tick.
+	if (FreezeCount > 0)
+	{
+		UnfreezeInternal();
+	}
+
+	// The unit is dead: force CanMove=true and DIRECTLY strip StopMovement/StopAnimation so the anim-processor
+	// exclusion clears THIS frame -> UUnitAnimationProcessor immediately re-anchors to the Dead row and the death
+	// VAT clip plays, instead of the deferred CanMove->StopMovement->StopAnimation pipeline lagging (and a stale
+	// CanMove=false re-adding it). Harmless on a corpse (it won't move). CanMove replicates, so remote clients
+	// clear their own exclusion and play the death clip too.
+	Unit->CanMove = true;
+	// Also make the RESTORE target true: after we zero the counts below, the field's later ReleaseMovementDisable
+	// still runs RestoreMovementInternal once (count 0->0), which would otherwise re-apply the captured
+	// bOriginalCanMove — re-freezing an originally-immobile corpse's anim. Forcing it true keeps the death clip
+	// playing regardless.
+	bOriginalCanMove = true;
+	FMassEntityManager* EM = nullptr;
+	FMassEntityHandle EntityHandle;
+	if (Unit->GetMassEntityData(EM, EntityHandle) && EM && EM->IsEntityValid(EntityHandle))
+	{
+		if (FMassAIStateFragment* AI = EM->GetFragmentDataPtr<FMassAIStateFragment>(EntityHandle))
+		{
+			AI->CanMove = true;
+		}
+		EM->RemoveTagFromEntity(EntityHandle, FMassStateStopMovementTag::StaticStruct());
+		EM->RemoveTagFromEntity(EntityHandle, FMassStateStopAnimationTag::StaticStruct());
+	}
+
+	// Clear the ref-counts so the field's later Release*/ReassertDisable calls become no-ops (clamped at 0) and
+	// never re-freeze the corpse.
+	MovementDisableCount = 0;
+	AttackDisableCount = 0;
+	FreezeCount = 0;
+	SetComponentTickEnabled(false);
+
+	UE_LOG(LogTemp, Warning, TEXT("[CC] ReleaseForDeath '%s' -> freeze dropped so the death animation plays"), *Unit->GetName());
+}
+
 void UCrowdControlStateComponent::HoldFreeze()
 {
 	AUnitBase* Unit = GetUnit();
@@ -387,6 +433,15 @@ void UCrowdControlStateComponent::ReassertDisable()
 	AUnitBase* Unit = GetUnit();
 	if (!Unit || !Unit->HasAuthority()) return;
 	if (MovementDisableCount <= 0 && AttackDisableCount <= 0 && FreezeCount <= 0) return;
+
+	// A unit that died while crowd-controlled must drop the holds so its death animation plays. This is the belt
+	// for the per-frame TickComponent (and the ONLY death handler for non-freeze CC, which has no tick). Never
+	// re-assert disables on a corpse.
+	if (Unit->GetUnitState() == UnitData::Dead)
+	{
+		ReleaseFreezeForDeath();
+		return;
+	}
 
 	FMassEntityManager* EM = nullptr;
 	FMassEntityHandle EntityHandle;
@@ -477,6 +532,18 @@ void UCrowdControlStateComponent::TickComponent(float DeltaTime, ELevelTick Tick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	// Death releases the freeze IMMEDIATELY (per-frame -> no perceptible delay) so the death animation plays
+	// instead of staying frozen. Checked before the dedicated-server skip so the authoritative release + tag
+	// clear also runs on a dedicated server (it replicates to clients).
+	if (AUnitBase* U = GetUnit())
+	{
+		if (U->GetUnitState() == UnitData::Dead)
+		{
+			ReleaseFreezeForDeath();
+			return;
+		}
+	}
+
 	// Server/host only (this component lives on the authority; remote clients drive their own copy from
 	// ACrowdControlMarker::Tick). Self-disable once the freeze is released; nothing to render on a dedicated
 	// server, so skip the per-instance writes there.
@@ -500,6 +567,13 @@ void UCrowdControlStateComponent::HoldISMVertexClock(AUnitBase* Unit, float NowS
 	{
 		return;
 	}
+	// Dead units: do NOT pin the StartTime — let the death VAT clip's clock advance so the death animation plays.
+	// (Server clears the exclusion in ReleaseFreezeForDeath; on clients this stops the marker-driven hold at once,
+	// before the 0.1s ClientVisualFreezeTick removes the corpse from its frozen set via the replicated CanMove.)
+	if (Unit->GetUnitState() == UnitData::Dead)
+	{
+		return;
+	}
 
 	FMassEntityManager* EM = nullptr;
 	FMassEntityHandle EntityHandle;
@@ -513,6 +587,30 @@ void UCrowdControlStateComponent::HoldISMVertexClock(AUnitBase* Unit, float NowS
 	if (!Visual || !Anim || Visual->bUseSkeletalMovement)
 	{
 		return; // skeletal units freeze via GlobalAnimRateScale, not the VAT clock
+	}
+
+	// AIRTIGHT HARDENING: keep the unit OUT of UUnitAnimationProcessor every frame by asserting the StopAnimation
+	// tag. UUnitAnimationProcessor is the ONLY code that re-anchors the ISM (rewrites StartTime, resets/drives
+	// BlendAlpha), and its EntityQuery excludes FMassStateStopAnimationTag. With that tag present every frame the
+	// unit is never in the query, so NO involuntary re-anchor can fire — regardless of GetUnitState(). This
+	// closes the whole class of "frozen in a non-Run/Attack/Chase state" defeats (Pause between attack swings,
+	// Casting, Idle->Patrol, Worker completions) and the direct StopMovement strips (transport unload / teleport),
+	// WITHOUT relying on the fragile 'limbo / no primary tag' premise. AddTagToEntity no-ops when the tag is
+	// already present (cheap in steady state) and re-adds it within a frame if the sync processor ever strips it.
+	// SAFE where FMassStateFrozenTag was not: StopAnimation only gates the anim processor, is derived locally (not
+	// a replicated control bit) -> no client desync. Dead units already returned above, so a corpse's death clip
+	// is never suppressed by this (ReleaseFreezeForDeath strips the tag on death).
+	// Gate on (!CanMove && !CanAnimate) — the EXACT condition under which the sync processor wants StopAnimation
+	// present (it derives it from StopMovement && !CanAnimate, and StopMovement follows CanMove=false). Mirroring
+	// it means assert and sync processor always AGREE, so once StopMovement latches this is a guarded no-op (no
+	// archetype churn). Skipping when CanMove==true avoids fighting the sync processor for the immediate
+	// PushFreeze path (never stops movement); skipping when CanAnimate==true respects a building's animate opt-in.
+	// Every real field freeze holds CanMove=false, so rank-1/2 stay closed. (A brief onset churn until StopMovement
+	// latches is bounded and harmless — the unit is functionally excluded at anim-processor time regardless.)
+	if (!Unit->CanMove && !Unit->CanAnimate
+		&& !DoesEntityHaveTag(*EM, EntityHandle, FMassStateStopAnimationTag::StaticStruct()))
+	{
+		EM->AddTagToEntity(EntityHandle, FMassStateStopAnimationTag::StaticStruct());
 	}
 
 	// Resolve the rendered instance exactly like UUnitAnimationProcessor: prefer the visual fragment, fall back

@@ -365,6 +365,32 @@ void ACrowdControlMarker::UpdateRotateToMouse(AUnitBase* Unit)
 	const float Now = World ? World->GetTimeSeconds() : 0.f;
 
 	// ---------------------------------------------------------------------------------------------
+	// CASTING OVERRIDE (e.g. the Reload ability): a casting/charging ability must play its OWN animation.
+	// FMassRotateToMouseTag resolves to EState::Aim, and in UnitClientTagSyncProcessor::ComputeState Aim is
+	// checked BEFORE Casting -> while the aim tag is present the Casting/Reload animation is masked. Per the
+	// design choice we fully DROP the aim tag for the duration of the cast (the caster stops following the
+	// mouse, plays the cast/reload anim), then let the per-tick re-assert below re-engage mouse-aim the moment
+	// the cast tag clears. Detected via the Mass tag (not GetUnitState(), which is itself masked to Aim here).
+	// Server-only path; the tag is a replicated control bit, so removing it on the server drops Aim on clients
+	// too and their ComputeState falls through to the (replicated) Casting state -> reload anim shows everywhere.
+	const bool bCastingBusy =
+		DoesEntityHaveTag(*EM, Entity, FMassStateCastingTag::StaticStruct()) ||
+		DoesEntityHaveTag(*EM, Entity, FMassStateChargingTag::StaticStruct());
+	if (bCastingBusy)
+	{
+		// Remove whether the marker (bRotateToMouseActive) or the ability itself put the tag there; idempotent.
+		if (bRotateToMouseActive || DoesEntityHaveTag(*EM, Entity, FMassRotateToMouseTag::StaticStruct()))
+		{
+			if (bDebugDraw)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[CC RotateToMouse] '%s' OFF (casting -> yield to ability anim)"), *Unit->GetName());
+			}
+			StopRotateToMouse(Unit); // sets bRotateToMouseActive=false; re-added automatically once the cast ends
+		}
+		return;
+	}
+
+	// ---------------------------------------------------------------------------------------------
 	// MOVE-INTENT test (replaces the old velocity-only "is moving" check that caused the stuck race).
 	//
 	// THE RACE: the player right-clicks -> the move command (RTSUnitTemplate UpdateMoveTarget) sets the

@@ -1005,8 +1005,15 @@ void UWeaponComponent::OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData)
 	SerializeArray(AvailableWeapons, TEXT("AvailableWeapons"));
 	SerializeArray(EffectAreas, TEXT("EffectAreas"));
 
+	// Radial talent tree: only the tree's own bookkeeping is persisted here. The concrete stat
+	// effects each node produced are already baked into AvailableWeapons / EffectAreas / CrowdControl
+	// above (via SaveAttributesToWeapon and the invest handlers), so on load we restore these two as
+	// RAW STATE and must NOT re-apply the node effects (that would double-apply the bonuses).
+	SerializeArray(TalentTreeNodes, TEXT("TalentTreeNodes"));
+
 	SaveData.SerializedModuleData.Add(TEXT("CurrentWeaponIndex"), FString::FromInt(CurrentWeaponIndex));
 	SaveData.SerializedModuleData.Add(TEXT("EffectAreaTalentPoints"), FString::SanitizeFloat(EffectAreaTalentPoints));
+	SaveData.SerializedModuleData.Add(TEXT("TalentTreeSpentPoints"), FString::SanitizeFloat(TalentTreeSpentPoints));
 
 	FString CrowdControlJson;
 	if (FJsonObjectConverter::UStructToJsonObjectString(CrowdControl, CrowdControlJson))
@@ -1042,6 +1049,21 @@ void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
 	if (FString* CrowdControlJson = SaveData.SerializedModuleData.Find(TEXT("CrowdControl")))
 	{
 		FJsonObjectConverter::JsonObjectStringToUStruct<FCrowdControlData>(*CrowdControlJson, &CrowdControl, 0, 0);
+	}
+
+	// Radial talent tree: restore the tree's bookkeeping as raw state (see OnUnitSave). We deliberately
+	// do NOT call ApplyTalentTreeNodeEffect / Server_InvestInTalentTreeNode here — the resulting weapon,
+	// effect-area and crowd-control stats were already restored above, so replaying node effects would
+	// stack a second bonus. TalentTreeSpentPoints must come back too, or GetAvailableTalentTreePoints()
+	// would regrant the whole pool (free re-spend) and the tree UI would render every node empty.
+	if (FString* TalentTreeNodesJson = SaveData.SerializedModuleData.Find(TEXT("TalentTreeNodes")))
+	{
+		FJsonObjectConverter::JsonArrayStringToUStruct<FTalentTreeNodeState>(*TalentTreeNodesJson, &TalentTreeNodes);
+	}
+
+	if (FString* SpentStr = SaveData.SerializedModuleData.Find(TEXT("TalentTreeSpentPoints")))
+	{
+		TalentTreeSpentPoints = FCString::Atof(**SpentStr);
 	}
 
 	// Restore assets from DataTables since JsonObjectConverter doesn't handle pointers/classes
