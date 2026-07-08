@@ -67,6 +67,8 @@ public:
 		, _TooltipPadding(12.f)
 		, _TooltipIconSize(40.f)
 		, _TooltipIconGap(8.f)
+		, _BackgroundColor(FLinearColor(0.02f, 0.02f, 0.04f, 0.75f))
+		, _bFillViewport(true)
 	{}
 		SLATE_ARGUMENT(float, RingSpacing)
 		SLATE_ARGUMENT(float, NodeRadius)
@@ -85,6 +87,8 @@ public:
 		SLATE_ARGUMENT(float, TooltipPadding)
 		SLATE_ARGUMENT(float, TooltipIconSize)
 		SLATE_ARGUMENT(float, TooltipIconGap)
+		SLATE_ARGUMENT(FLinearColor, BackgroundColor)
+		SLATE_ARGUMENT(bool, bFillViewport)
 		SLATE_EVENT(FTalentTreeGetNodePoints, OnGetNodePoints)
 		SLATE_EVENT(FTalentTreeGetAvailablePoints, OnGetAvailablePoints)
 		SLATE_EVENT(FTalentTreeIsUnlocked, OnIsUnlocked)
@@ -143,6 +147,10 @@ private:
 	float TooltipIconSize = 40.f;
 	float TooltipIconGap = 8.f;
 
+	// Full-rect dimmed backdrop (also absorbs clicks so they never reach the game world).
+	FLinearColor BackgroundColor = FLinearColor(0.02f, 0.02f, 0.04f, 0.75f);
+	bool bFillViewport = true;
+
 	// Delegates
 	FTalentTreeGetNodePoints OnGetNodePointsDelegate;
 	FTalentTreeGetAvailablePoints OnGetAvailablePointsDelegate;
@@ -152,6 +160,7 @@ private:
 
 	// Render resources
 	FSlateBrush NodeBackgroundBrush;
+	FSlateBrush BackgroundBrush;
 	FSlateFontInfo NodeFont;
 	FSlateFontInfo CountFont;
 
