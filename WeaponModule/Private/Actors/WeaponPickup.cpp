@@ -56,6 +56,17 @@ void AWeaponPickup::HandlePickupImpact(APickup* Pickup, AUnitBase* Unit)
 	UWeaponComponent* WeaponComp = Unit->FindComponentByClass<UWeaponComponent>();
 	if (!WeaponComp) return;
 
+	// Currency / potion grant. Authority only: APickup fires OnPickupImpact on clients too (its Tick
+	// is un-gated), and an unguarded int increment would transiently double-count on the client before
+	// the replicated value corrects it. The weapon/grenade branches below keep the existing
+	// replication-overwrite behaviour; the counters must be server-authoritative.
+	if (Unit->HasAuthority())
+	{
+		if (GoldToAdd != 0) WeaponComp->AddGold(GoldToAdd);
+		if (HealPotionsToAdd > 0) WeaponComp->AddHealPotions(HealPotionsToAdd);
+		if (ManaPotionsToAdd > 0) WeaponComp->AddManaPotions(ManaPotionsToAdd);
+	}
+
 	if (EffectAreaIndex != -1)
 	{
 		if (WeaponComp->EffectAreas.IsValidIndex(EffectAreaIndex))

@@ -6,6 +6,8 @@
 #include "UI/EffectAreaTalentWidget.h"
 #include "UI/CrowdControlTalentWidget.h"
 #include "UI/TalentTreeWidget.h"
+#include "UI/WeaponStoreWidget.h"
+#include "Actors/WeaponStore.h"
 #include "Widgets/TalentChooser.h"
 #include "Characters/Unit/LevelUnit.h"
 #include "Hud/HUDBase.h"
@@ -25,6 +27,18 @@ void UWeaponSelectionHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	CreateHUDWidgets();
+}
+
+void UWeaponSelectionHUDWidget::NativeDestruct()
+{
+	// The store widget may have been added directly to the viewport (when no StoreContainer is bound),
+	// so it is not torn down with this widget's tree. Remove it explicitly to avoid an orphan.
+	if (StoreWidgetInstance)
+	{
+		StoreWidgetInstance->RemoveFromParent();
+		StoreWidgetInstance = nullptr;
+	}
+	Super::NativeDestruct();
 }
 
 void UWeaponSelectionHUDWidget::SynchronizeProperties()
@@ -169,6 +183,7 @@ void UWeaponSelectionHUDWidget::ToggleEffectAreaTalentWidget(AUnitBase* Unit)
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentChooserWidgetInstance) { TalentChooserWidgetInstance->StopTimer(); TalentChooserWidgetInstance->SetVisibility(ESlateVisibility::Collapsed); }
+		if (StoreWidgetInstance) StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -213,6 +228,7 @@ void UWeaponSelectionHUDWidget::ToggleTalentTreeWidget(AUnitBase* Unit)
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentChooserWidgetInstance) { TalentChooserWidgetInstance->StopTimer(); TalentChooserWidgetInstance->SetVisibility(ESlateVisibility::Collapsed); }
+		if (StoreWidgetInstance) StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -253,6 +269,7 @@ void UWeaponSelectionHUDWidget::ToggleTalentChooserWidget(AUnitBase* Unit)
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		if (StoreWidgetInstance) StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -288,6 +305,7 @@ void UWeaponSelectionHUDWidget::ToggleCrowdControlTalentWidget(AUnitBase* Unit)
 		if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentChooserWidgetInstance) { TalentChooserWidgetInstance->StopTimer(); TalentChooserWidgetInstance->SetVisibility(ESlateVisibility::Collapsed); }
+		if (StoreWidgetInstance) StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -325,6 +343,7 @@ void UWeaponSelectionHUDWidget::ToggleTalentWidget(AUnitBase* Unit)
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentChooserWidgetInstance) { TalentChooserWidgetInstance->StopTimer(); TalentChooserWidgetInstance->SetVisibility(ESlateVisibility::Collapsed); }
+		if (StoreWidgetInstance) StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -362,6 +381,84 @@ void UWeaponSelectionHUDWidget::ToggleEffectTalentWidget(AUnitBase* Unit)
 		if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		if (TalentChooserWidgetInstance) { TalentChooserWidgetInstance->StopTimer(); TalentChooserWidgetInstance->SetVisibility(ESlateVisibility::Collapsed); }
+		if (StoreWidgetInstance) StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UWeaponSelectionHUDWidget::OpenStoreForUnit(AUnitBase* Unit, AWeaponStore* Store)
+{
+	if (!Unit || !Store) return;
+
+	TSubclassOf<UWeaponStoreWidget> ClassToUse = Store->StoreWidgetClass ? Store->StoreWidgetClass : StoreWidgetClass;
+	if (!ClassToUse) return;
+
+	// If a different store wants a different widget class, drop the cached instance so we honor the override.
+	if (StoreWidgetInstance && StoreWidgetInstance->GetClass() != ClassToUse)
+	{
+		StoreWidgetInstance->RemoveFromParent();
+		StoreWidgetInstance = nullptr;
+	}
+
+	if (!StoreWidgetInstance)
+	{
+		StoreWidgetInstance = CreateWidget<UWeaponStoreWidget>(GetOwningPlayer(), ClassToUse);
+		if (!StoreWidgetInstance) return;
+
+		if (StoreContainer)
+		{
+			StoreContainer->AddChild(StoreWidgetInstance);
+		}
+		else
+		{
+			StoreWidgetInstance->AddToViewport(1000); // high ZOrder so it is not hidden behind the main HUD
+		}
+	}
+
+	StoreWidgetInstance->SetStoreActor(Store);
+	StoreWidgetInstance->SetTargetUnit(Unit);
+	StoreWidgetInstance->RefreshStore(true);
+	StoreWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+	// Mutually exclusive with the talent panels.
+	if (TalentWidgetInstance) TalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	if (EffectTalentWidgetInstance) EffectTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	if (EffectAreaTalentWidgetInstance) EffectAreaTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	if (CrowdControlTalentWidgetInstance) CrowdControlTalentWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	if (TalentTreeWidgetInstance) TalentTreeWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	if (TalentChooserWidgetInstance) { TalentChooserWidgetInstance->StopTimer(); TalentChooserWidgetInstance->SetVisibility(ESlateVisibility::Collapsed); }
+}
+
+void UWeaponSelectionHUDWidget::CloseStoreForUnit(AUnitBase* Unit, AWeaponStore* Store)
+{
+	if (!StoreWidgetInstance) return;
+
+	// Only close if we are showing exactly this unit (+ store), so leaving store A doesn't close store B.
+	if (StoreWidgetInstance->GetTargetUnit() == Unit && (Store == nullptr || StoreWidgetInstance->GetStoreActor() == Store))
+	{
+		StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UWeaponSelectionHUDWidget::ToggleStoreWidget(AUnitBase* Unit)
+{
+	if (!Unit) return;
+
+	if (StoreWidgetInstance
+		&& StoreWidgetInstance->GetVisibility() == ESlateVisibility::Visible
+		&& StoreWidgetInstance->GetTargetUnit() == Unit)
+	{
+		StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	AWeaponStore* Store = nullptr;
+	if (UWeaponComponent* WC = Unit->FindComponentByClass<UWeaponComponent>())
+	{
+		Store = WC->GetCurrentStore();
+	}
+	if (Store)
+	{
+		OpenStoreForUnit(Unit, Store);
 	}
 }
 
@@ -511,6 +608,22 @@ void UWeaponSelectionHUDWidget::UpdateSelection()
 		{
 			TalentChooserWidgetInstance->StopTimer();
 			TalentChooserWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// Update Store Widget if visible. Its open/close lifecycle is driven by the store actor's LOCAL
+	// overlap begin/end (OpenStoreForUnit / CloseStoreForUnit), so here we only refresh gold/affordability
+	// and close if the shopping unit itself is gone. We deliberately do NOT close based on the replicated
+	// WeaponComponent::CurrentStore, which can lag one round-trip behind the local overlap that opened us.
+	if (StoreWidgetInstance && StoreWidgetInstance->GetVisibility() == ESlateVisibility::Visible)
+	{
+		if (StoreWidgetInstance->GetTargetUnit())
+		{
+			StoreWidgetInstance->RefreshStore(false);
+		}
+		else
+		{
+			StoreWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 }

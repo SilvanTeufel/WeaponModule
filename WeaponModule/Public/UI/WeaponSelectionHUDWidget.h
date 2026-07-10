@@ -21,6 +21,7 @@ class WEAPONMODULE_API UWeaponSelectionHUDWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual void SynchronizeProperties() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
@@ -48,6 +49,10 @@ public:
 	/** BP widget class of the RTSUnitTemplate TalentChooser (e.g. BP_TalentChooser) to embed. */
 	UPROPERTY(EditAnywhere, Category = "Config")
 	TSubclassOf<class UTalentChooser> TalentChooserWidgetClass;
+
+	/** Default store widget class. Opened by AWeaponStore (which may override it per-store). */
+	UPROPERTY(EditAnywhere, Category = "Config")
+	TSubclassOf<class UWeaponStoreWidget> StoreWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
 	int32 MaxDisplayedUnits = 3;
@@ -86,6 +91,9 @@ protected:
 	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
 	class UPanelWidget* TalentChooserContainer;
 
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UPanelWidget* StoreContainer;
+
 	UPROPERTY()
 	TArray<UWeaponHUDWidget*> WeaponHUDWidgets;
 
@@ -107,6 +115,9 @@ protected:
 	UPROPERTY()
 	class UTalentChooser* TalentChooserWidgetInstance;
 
+	UPROPERTY()
+	class UWeaponStoreWidget* StoreWidgetInstance;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleTalentWidget(class AUnitBase* Unit);
@@ -125,6 +136,19 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon|UI")
 	void ToggleTalentChooserWidget(class AUnitBase* Unit);
+
+	// --- Store ---
+	/** Open the store widget for a unit at a specific store (called by AWeaponStore on the owning client). */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Store")
+	void OpenStoreForUnit(class AUnitBase* Unit, class AWeaponStore* Store);
+
+	/** Close the store widget if it is currently showing this unit + store (called on overlap end). */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Store")
+	void CloseStoreForUnit(class AUnitBase* Unit, class AWeaponStore* Store);
+
+	/** Toggle the store for a unit using the store it is currently standing in (WeaponComponent::CurrentStore). */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Store")
+	void ToggleStoreWidget(class AUnitBase* Unit);
 
 protected:
 

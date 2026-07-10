@@ -48,6 +48,11 @@ void UWeaponHUDWidget::NativeConstruct()
 	{
 		ToggleTalentChooserButton->OnClicked.AddDynamic(this, &UWeaponHUDWidget::OnToggleTalentChooserClicked);
 	}
+
+	if (ToggleStoreButton)
+	{
+		ToggleStoreButton->OnClicked.AddDynamic(this, &UWeaponHUDWidget::OnToggleStoreClicked);
+	}
 }
 
 void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
@@ -185,7 +190,12 @@ void UWeaponHUDWidget::UpdateWidget(AUnitBase* Unit)
 			}
 		}
 
-		if (EffectAreaAmount0 && WeaponComp->EffectAreas.IsValidIndex(0)) 
+		// Economy: Gold wallet + potion inventory (per-unit, on the WeaponComponent).
+		if (GoldText) GoldText->SetText(FText::AsNumber(WeaponComp->GetGold()));
+		if (HealPotionsText) HealPotionsText->SetText(FText::AsNumber(WeaponComp->GetHealPotions()));
+		if (ManaPotionsText) ManaPotionsText->SetText(FText::AsNumber(WeaponComp->GetManaPotions()));
+
+		if (EffectAreaAmount0 && WeaponComp->EffectAreas.IsValidIndex(0))
 			EffectAreaAmount0->SetText(FText::AsNumber(FMath::FloorToInt(WeaponComp->EffectAreas[0].Amount)));
 		if (EffectAreaAmount1 && WeaponComp->EffectAreas.IsValidIndex(1)) 
 			EffectAreaAmount1->SetText(FText::AsNumber(FMath::FloorToInt(WeaponComp->EffectAreas[1].Amount)));
@@ -424,6 +434,35 @@ void UWeaponHUDWidget::OnToggleTalentChooserClicked()
 		if (UWeaponSelectionHUDWidget* SelectionWidget = Cast<UWeaponSelectionHUDWidget>(CurrentOuter))
 		{
 			SelectionWidget->ToggleTalentChooserWidget(CurrentUnit);
+			return;
+		}
+		CurrentOuter = CurrentOuter->GetOuter();
+	}
+}
+
+void UWeaponHUDWidget::OnToggleStoreClicked()
+{
+	if (!CurrentUnit) return;
+
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		if (UWeaponHUDComponent* HUDComp = PC->FindComponentByClass<UWeaponHUDComponent>())
+		{
+			if (HUDComp->WeaponSelectionWidgetInstance)
+			{
+				HUDComp->WeaponSelectionWidgetInstance->ToggleStoreWidget(CurrentUnit);
+				return;
+			}
+		}
+	}
+
+	// Fallback - Search in the Outer hierarchy
+	UObject* CurrentOuter = GetOuter();
+	while (CurrentOuter)
+	{
+		if (UWeaponSelectionHUDWidget* SelectionWidget = Cast<UWeaponSelectionHUDWidget>(CurrentOuter))
+		{
+			SelectionWidget->ToggleStoreWidget(CurrentUnit);
 			return;
 		}
 		CurrentOuter = CurrentOuter->GetOuter();

@@ -8,7 +8,10 @@
 #include "GameplayTagContainer.h"
 #include "Actors/Projectile.h"
 #include "Save/RTSSaveGame.h"
+#include "Store/StoreTypes.h"
 #include "WeaponComponent.generated.h"
+
+class AWeaponStore;
 
 USTRUCT(BlueprintType)
 struct FWeaponData : public FTableRowBase
@@ -664,6 +667,98 @@ public:
 	/** Refund all tree points and clear every node + the talent effects it drives (server-authoritative). */
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Weapon|TalentTree")
 	void Server_ResetTalentTree();
+
+	// ---------------------------------------------------------------------
+	//  Economy / Store (Gold currency + potion inventory)
+	// ---------------------------------------------------------------------
+
+	/** Per-unit Gold wallet. Replicated to the owning client; persisted via SerializedModuleData. */
+	UPROPERTY(ReplicatedUsing = OnRep_Gold, BlueprintReadOnly, EditAnywhere, Category = "Weapon|Economy")
+	int32 Gold = 0;
+
+	/** Heal-potion charges consumed by UPotionAbility (EPotionKind::Health). */
+	UPROPERTY(Replicated, BlueprintReadOnly, EditAnywhere, Category = "Weapon|Economy")
+	int32 HealPotions = 0;
+
+	/** Mana-potion charges consumed by UPotionAbility (EPotionKind::Mana). */
+	UPROPERTY(Replicated, BlueprintReadOnly, EditAnywhere, Category = "Weapon|Economy")
+	int32 ManaPotions = 0;
+
+	/** Bonus crowd-control talent points bought at a store (folded into GetAvailableCrowdControlPoints). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Weapon|Economy")
+	float BonusCrowdControlTalentPoints = 0.f;
+
+	/** Bonus talent-tree points bought at a store (folded into GetAvailableTalentTreePoints). */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Weapon|Economy")
+	float BonusTalentTreePoints = 0.f;
+
+	/**
+	 * Store the owning unit is currently standing in (server-authoritative gate for purchases).
+	 * Set/cleared by AWeaponStore overlap; replicated so the owning client can offer the store toggle.
+	 */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Weapon|Economy")
+	TObjectPtr<AWeaponStore> CurrentStore = nullptr;
+
+	UFUNCTION()
+	void OnRep_Gold();
+
+public:
+	/** Read-only accessors (BP + widgets). */
+	UFUNCTION(BlueprintPure, Category = "Weapon|Economy")
+	int32 GetGold() const { return Gold; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Economy")
+	int32 GetHealPotions() const { return HealPotions; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Economy")
+	int32 GetManaPotions() const { return ManaPotions; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Economy")
+	AWeaponStore* GetCurrentStore() const { return CurrentStore; }
+
+	/** Add/remove Gold (server-authoritative). Negative amounts spend; clamped to >= 0. */
+	void AddGold(int32 Delta);
+
+	/** Add potion charges (server-authoritative). Used by pickups and, indirectly, the store. */
+	void AddHealPotions(int32 Count);
+	void AddManaPotions(int32 Count);
+
+	/** Consume one potion charge of the given kind. Returns false if none left (server-authoritative). */
+	bool ConsumeHealPotion();
+	bool ConsumeManaPotion();
+
+	/** Multicast a potion-consumed cosmetic to every relevant client. Called by UPotionAbility on the server
+	 *  (the ability instance itself only exists on the authority, so cross-client VFX/SFX must go through here). */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_PlayPotionFX(bool bHeal);
+
+	/** BP hook fired on every machine when a potion is consumed - design the VFX/SFX here. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Weapon|Economy")
+	void OnPotionFX(bool bHeal);
+
+	/** Set/clear the store the unit is overlapping (server-authoritative; called by AWeaponStore). */
+	void SetCurrentStore(AWeaponStore* Store);
+	void ClearCurrentStore(AWeaponStore* Store);
+
+	/**
+	 * Purchase the StoreItems[Index] entry of the unit's CurrentStore (server-authoritative).
+	 * Validates the store, index and Gold, deducts the cost and applies the item. Refunds on a
+	 * failed apply. The client never mutates Gold or weapon data directly.
+	 */
+	void BuyStoreItem(int32 Index);
+
+protected:
+	/** Applies one store item to this unit/component (server-side). Returns false if nothing was applied. */
+	bool ApplyStoreItem(const FStoreItemEntry& Item);
+
+	/** Adds a weapon (or magazines to an owned copy) from a store entry. Returns false on failure. */
+	bool AddWeaponFromStoreEntry(const FStoreItemEntry& Item);
+
+	/** Resolves a weapon index by tag; an empty/invalid tag returns CurrentWeaponIndex. INDEX_NONE if not found. */
+	int32 ResolveWeaponIndex(const FGameplayTag& Tag) const;
+
+	/** Convenience: the owning unit's UAttributeSetBase (Health/Mana/Shield), or nullptr. */
+	const class UAttributeSetBase* GetUnitAttributeSet() const;
 
 protected:
 	/** Applies the concrete underlying talent for a node WITHOUT charging any per-system points.

@@ -68,4 +68,8 @@ public:
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Talents")
 	void Server_ResetTalentTree(UWeaponComponent* WeaponComp);
+
+	/** Buy StoreItems[ItemIndex] from the unit's currently-overlapped store (server-authoritative). */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Weapon|Store")
+	void Server_BuyStoreItem(UWeaponComponent* WeaponComp, int32 ItemIndex);
 };

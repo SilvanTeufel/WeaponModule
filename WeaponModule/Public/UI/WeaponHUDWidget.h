@@ -45,6 +45,9 @@ protected:
 	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
 	class UButton* ToggleTalentChooserButton;
 
+	UPROPERTY(meta = (BindWidget))
+	class UButton* ToggleStoreButton;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon|UI")
 	class AUnitBase* CurrentUnit;
 
@@ -65,6 +68,9 @@ protected:
 
 	UFUNCTION()
 	void OnToggleTalentChooserClicked();
+
+	UFUNCTION()
+	void OnToggleStoreClicked();
 
 	// Health
 	UPROPERTY(meta = (BindWidget))
@@ -174,6 +180,16 @@ protected:
 	// Magazines
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* MagazinesText;
+
+	// Economy (Gold + potion inventory) - mandatory BindWidgets: a missing/misnamed element is now a compile error.
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* GoldText;
+
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* HealPotionsText;
+
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* ManaPotionsText;
 
 	// Effect Areas
 	UPROPERTY(meta = (BindWidget))

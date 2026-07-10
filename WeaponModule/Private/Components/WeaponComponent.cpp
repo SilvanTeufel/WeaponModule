@@ -3,9 +3,12 @@
 #include "Components/WeaponComponent.h"
 #include "Abilities/WeaponAttributeSet.h"
 #include "Abilities/ShootAbility.h"
+#include "Actors/WeaponStore.h"
 #include "Characters/Unit/LevelUnit.h"
 #include "Characters/Unit/AbilityUnit.h"
 #include "Characters/Unit/PerformanceUnit.h"
+#include "Characters/Unit/UnitBase.h"
+#include "GAS/AttributeSetBase.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Net/UnrealNetwork.h"
@@ -95,6 +98,18 @@ void UWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UWeaponComponent, CrowdControl);
 	DOREPLIFETIME(UWeaponComponent, TalentTreeNodes);
 	DOREPLIFETIME(UWeaponComponent, TalentTreeSpentPoints);
+	DOREPLIFETIME(UWeaponComponent, Gold);
+	DOREPLIFETIME(UWeaponComponent, HealPotions);
+	DOREPLIFETIME(UWeaponComponent, ManaPotions);
+	DOREPLIFETIME(UWeaponComponent, BonusCrowdControlTalentPoints);
+	DOREPLIFETIME(UWeaponComponent, BonusTalentTreePoints);
+	DOREPLIFETIME(UWeaponComponent, CurrentStore);
+}
+
+void UWeaponComponent::OnRep_Gold()
+{
+	// The HUD polls Gold every refresh (like the EffectArea amounts), so nothing is required here.
+	// Kept as a hook so a designer BP / future UI can react to gold changes immediately.
 }
 
 void UWeaponComponent::OnRep_CurrentWeaponIndex()
@@ -646,7 +661,7 @@ float UWeaponComponent::GetAvailableCrowdControlPoints() const
 		Level = LevelUnit->GetCharacterLevel();
 	}
 	const int32 Divisor = FMath::Max(1, CrowdControlLevelDivisor);
-	const float Granted = StartCrowdControlTalentPoints + (float)(Level / Divisor);
+	const float Granted = StartCrowdControlTalentPoints + BonusCrowdControlTalentPoints + (float)(Level / Divisor);
 	return FMath::Max(0.f, Granted - CrowdControl.SpentPoints);
 }
 
@@ -669,7 +684,7 @@ float UWeaponComponent::GetAvailableTalentTreePoints() const
 		Level = LevelUnit->GetCharacterLevel();
 	}
 	const int32 Divisor = FMath::Max(1, TalentTreeLevelDivisor);
-	const float Granted = StartTalentTreePoints + (float)(Level / Divisor);
+	const float Granted = StartTalentTreePoints + BonusTalentTreePoints + (float)(Level / Divisor);
 	return FMath::Max(0.f, Granted - TalentTreeSpentPoints);
 }
 
@@ -982,6 +997,311 @@ void UWeaponComponent::Server_ResetTalentTree_Implementation()
 	SyncAttributesFromWeapon(CurrentWeaponIndex);
 }
 
+// ---------------------------------------------------------------------------
+//  Economy / Store
+// ---------------------------------------------------------------------------
+
+const UAttributeSetBase* UWeaponComponent::GetUnitAttributeSet() const
+{
+	if (const AActor* OwnerActor = GetOwner())
+	{
+		if (const UAbilitySystemComponent* ASC = OwnerActor->FindComponentByClass<UAbilitySystemComponent>())
+		{
+			return ASC->GetSet<UAttributeSetBase>();
+		}
+	}
+	return nullptr;
+}
+
+int32 UWeaponComponent::ResolveWeaponIndex(const FGameplayTag& Tag) const
+{
+	if (!Tag.IsValid() || Tag == FGameplayTag::EmptyTag)
+	{
+		return CurrentWeaponIndex;
+	}
+	for (int32 i = 0; i < AvailableWeapons.Num(); ++i)
+	{
+		if (AvailableWeapons[i].WeaponTag == Tag)
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
+}
+
+void UWeaponComponent::AddGold(int32 Delta)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	Gold = FMath::Max(0, Gold + Delta);
+}
+
+void UWeaponComponent::AddHealPotions(int32 Count)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	HealPotions = FMath::Max(0, HealPotions + Count);
+}
+
+void UWeaponComponent::AddManaPotions(int32 Count)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	ManaPotions = FMath::Max(0, ManaPotions + Count);
+}
+
+bool UWeaponComponent::ConsumeHealPotion()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
+	if (HealPotions <= 0) return false;
+	--HealPotions;
+	return true;
+}
+
+bool UWeaponComponent::ConsumeManaPotion()
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;
+	if (ManaPotions <= 0) return false;
+	--ManaPotions;
+	return true;
+}
+
+void UWeaponComponent::Multicast_PlayPotionFX_Implementation(bool bHeal)
+{
+	OnPotionFX(bHeal);
+}
+
+void UWeaponComponent::SetCurrentStore(AWeaponStore* Store)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	CurrentStore = Store;
+}
+
+void UWeaponComponent::ClearCurrentStore(AWeaponStore* Store)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+	// Only clear if we're leaving the store we were registered to (avoids a second store's
+	// end-overlap wiping a store we are still inside).
+	if (CurrentStore == Store)
+	{
+		CurrentStore = nullptr;
+	}
+}
+
+void UWeaponComponent::BuyStoreItem(int32 Index)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+
+	// The store the unit is standing in is the only trusted source of prices/items.
+	AWeaponStore* Store = CurrentStore;
+	if (!Store) return;
+
+	if (!Store->StoreItems.IsValidIndex(Index)) return;
+	const FStoreItemEntry Item = Store->StoreItems[Index];
+
+	const int32 Cost = FMath::Max(0, Item.GoldCost);
+	if (Gold < Cost) return;
+
+	// Deduct first, apply, refund on failure so a bad target never charges the player.
+	Gold -= Cost;
+	if (!ApplyStoreItem(Item))
+	{
+		Gold += Cost;
+	}
+}
+
+bool UWeaponComponent::AddWeaponFromStoreEntry(const FStoreItemEntry& Item)
+{
+	UDataTable* Table = Item.WeaponDataTable ? Item.WeaponDataTable : WeaponDataTable;
+	if (!Table || Item.WeaponRowName.IsNone()) return false;
+
+	static const FString ContextString(TEXT("StoreBuyWeapon"));
+	FWeaponData* Row = Table->FindRow<FWeaponData>(Item.WeaponRowName, ContextString, /*bWarnIfMissing=*/false);
+	if (!Row) return false;
+
+	const float MagsToGrant = FMath::Max(0.f, Item.Amount);
+
+	// Already own this weapon? Add magazines to it instead of a duplicate (mirrors AWeaponPickup).
+	for (int32 i = 0; i < AvailableWeapons.Num(); ++i)
+	{
+		if (Row->WeaponTag.IsValid() && AvailableWeapons[i].WeaponTag == Row->WeaponTag)
+		{
+			FWeaponData& Existing = AvailableWeapons[i];
+			const float MaxMags = Existing.MaxMagazinesSpec > 0 ? Existing.MaxMagazinesSpec : Existing.MaxMagazines;
+			Existing.AmountMagazines = FMath::Min(Existing.AmountMagazines + MagsToGrant, MaxMags);
+			if (i == CurrentWeaponIndex)
+			{
+				SyncAttributesFromWeapon(CurrentWeaponIndex);
+			}
+			return true;
+		}
+	}
+
+	FWeaponData NewWeapon = *Row;
+	NewWeapon.Ammo = 0.0f;
+	NewWeapon.AmountMagazines = MagsToGrant > 0.f ? MagsToGrant : NewWeapon.AmountMagazines;
+
+	const int32 NewIdx = AvailableWeapons.Add(NewWeapon);
+	if (CurrentWeaponIndex == -1 || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex))
+	{
+		CurrentWeaponIndex = NewIdx;
+		SyncAttributesFromWeapon(NewIdx);
+	}
+	return true;
+}
+
+bool UWeaponComponent::ApplyStoreItem(const FStoreItemEntry& Item)
+{
+	AUnitBase* Unit = Cast<AUnitBase>(GetOwner());
+
+	switch (Item.ItemType)
+	{
+	// NOTE: every case returns false when the purchase would change nothing (no resource pool, already
+	// at max, non-positive amount). BuyStoreItem refunds the Gold on a false return, so the player is
+	// never charged for a no-op.
+	case EStoreItemType::ManaRestore:
+	{
+		if (!Unit) return false;
+		const UAttributeSetBase* AS = GetUnitAttributeSet();
+		if (!AS) return false;
+		if (AS->GetMaxMana() <= 0.f) return false;           // unit has no mana pool
+		if (AS->GetMana() >= AS->GetMaxMana()) return false; // already full
+		const float NewMana = (Item.Amount > 0.f) ? FMath::Min(AS->GetMana() + Item.Amount, AS->GetMaxMana()) : AS->GetMaxMana();
+		Unit->SetMana(NewMana);
+		return true;
+	}
+	case EStoreItemType::HealthRestore:
+	{
+		if (!Unit) return false;
+		const UAttributeSetBase* AS = GetUnitAttributeSet();
+		if (!AS) return false;
+		if (AS->GetMaxHealth() <= 0.f) return false;
+		if (AS->GetHealth() >= AS->GetMaxHealth()) return false; // already full
+		const float NewHealth = (Item.Amount > 0.f) ? FMath::Min(AS->GetHealth() + Item.Amount, AS->GetMaxHealth()) : AS->GetMaxHealth();
+		Unit->SetHealth(NewHealth);
+		return true;
+	}
+	case EStoreItemType::ShieldRestore:
+	{
+		if (!Unit) return false;
+		const UAttributeSetBase* AS = GetUnitAttributeSet();
+		if (!AS) return false;
+		if (AS->GetMaxShield() <= 0.f) return false;             // unit has no shield -> nothing to buy
+		if (AS->GetShield() >= AS->GetMaxShield()) return false; // already full
+		const float NewShield = (Item.Amount > 0.f) ? FMath::Min(AS->GetShield() + Item.Amount, AS->GetMaxShield()) : AS->GetMaxShield();
+		Unit->SetShield(NewShield);
+		return true;
+	}
+	case EStoreItemType::Magazines:
+	{
+		const int32 Idx = ResolveWeaponIndex(Item.WeaponTag);
+		if (!AvailableWeapons.IsValidIndex(Idx)) return false;
+		FWeaponData& Data = AvailableWeapons[Idx];
+		const float MaxMags = Data.MaxMagazinesSpec > 0 ? Data.MaxMagazinesSpec : Data.MaxMagazines;
+		const float NewMags = FMath::Min(Data.AmountMagazines + FMath::Max(0.f, Item.Amount), MaxMags);
+		if (NewMags <= Data.AmountMagazines) return false; // already full or non-positive amount -> no-op
+		Data.AmountMagazines = NewMags;
+		if (Idx == CurrentWeaponIndex) SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::InstantReload:
+	{
+		const int32 Idx = ResolveWeaponIndex(Item.WeaponTag);
+		if (!AvailableWeapons.IsValidIndex(Idx)) return false;
+		FWeaponData& Data = AvailableWeapons[Idx];
+		const float MaxA = Data.MaxAmmoSpec > 0 ? Data.MaxAmmoSpec : Data.MaxAmmo;
+		if (Data.Ammo >= MaxA) return false; // already full
+		Data.Ammo = MaxA;
+		if (Idx == CurrentWeaponIndex) SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::MaxMagazineUpgrade:
+	{
+		const int32 Idx = ResolveWeaponIndex(Item.WeaponTag);
+		if (!AvailableWeapons.IsValidIndex(Idx)) return false;
+		FWeaponData& Data = AvailableWeapons[Idx];
+		const float Step = Item.Amount > 0.f ? Item.Amount : 1.f;
+		Data.MaxMagazines += Step;
+		Data.MaxMagazinesSpec = (Data.MaxMagazinesSpec > 0 ? Data.MaxMagazinesSpec : Data.MaxMagazines) + (Data.MaxMagazinesSpec > 0 ? Step : 0.f);
+		// Grant the newly-unlocked magazine(s) so the upgrade is immediately usable.
+		const float NewMax = Data.MaxMagazinesSpec > 0 ? Data.MaxMagazinesSpec : Data.MaxMagazines;
+		Data.AmountMagazines = FMath::Min(Data.AmountMagazines + Step, NewMax);
+		if (Idx == CurrentWeaponIndex) SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::MaxAmmoUpgrade:
+	{
+		const int32 Idx = ResolveWeaponIndex(Item.WeaponTag);
+		if (!AvailableWeapons.IsValidIndex(Idx)) return false;
+		FWeaponData& Data = AvailableWeapons[Idx];
+		const float Step = Item.Amount > 0.f ? Item.Amount : 1.f;
+		Data.MaxAmmo += Step;
+		if (Data.MaxAmmoSpec > 0) Data.MaxAmmoSpec += Step; else Data.MaxAmmoSpec = Data.MaxAmmo;
+		if (Idx == CurrentWeaponIndex) SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::Grenades:
+	{
+		if (!EffectAreas.IsValidIndex(Item.EffectAreaIndex)) return false;
+		const float Add = FMath::Max(0.f, Item.Amount);
+		if (Add <= 0.f) return false; // non-positive amount -> no-op
+		EffectAreas[Item.EffectAreaIndex].Amount += Add;
+		return true;
+	}
+	case EStoreItemType::Weapon:
+	{
+		return AddWeaponFromStoreEntry(Item);
+	}
+	case EStoreItemType::HealPotion:
+	{
+		HealPotions += FMath::Max(1, FMath::RoundToInt(Item.Amount));
+		return true;
+	}
+	case EStoreItemType::ManaPotion:
+	{
+		ManaPotions += FMath::Max(1, FMath::RoundToInt(Item.Amount));
+		return true;
+	}
+	case EStoreItemType::WeaponTalentPoints:
+	{
+		if (Item.Amount <= 0.f) return false;
+		if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return false;
+		WeaponAttributes->SetAttributeWeaponTalentPoints(WeaponAttributes->GetWeaponTalentPoints() + Item.Amount);
+		SaveAttributesToWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::EffectTalentPoints:
+	{
+		if (Item.Amount <= 0.f) return false;
+		if (!WeaponAttributes || !AvailableWeapons.IsValidIndex(CurrentWeaponIndex)) return false;
+		WeaponAttributes->SetAttributeEffectTalentPoints(WeaponAttributes->GetEffectTalentPoints() + Item.Amount);
+		SaveAttributesToWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::EffectAreaTalentPoints:
+	{
+		if (Item.Amount <= 0.f) return false;
+		EffectAreaTalentPoints += Item.Amount;
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::CrowdControlTalentPoints:
+	{
+		if (Item.Amount <= 0.f) return false;
+		BonusCrowdControlTalentPoints += Item.Amount;
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	case EStoreItemType::TalentTreePoints:
+	{
+		if (Item.Amount <= 0.f) return false;
+		BonusTalentTreePoints += Item.Amount;
+		SyncAttributesFromWeapon(CurrentWeaponIndex);
+		return true;
+	}
+	default:
+		break;
+	}
+	return false;
+}
+
 void UWeaponComponent::OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData)
 {
 	if (Unit != GetOwner()) return;
@@ -1014,6 +1334,14 @@ void UWeaponComponent::OnUnitSave(AUnitBase* Unit, FUnitSaveData& SaveData)
 	SaveData.SerializedModuleData.Add(TEXT("CurrentWeaponIndex"), FString::FromInt(CurrentWeaponIndex));
 	SaveData.SerializedModuleData.Add(TEXT("EffectAreaTalentPoints"), FString::SanitizeFloat(EffectAreaTalentPoints));
 	SaveData.SerializedModuleData.Add(TEXT("TalentTreeSpentPoints"), FString::SanitizeFloat(TalentTreeSpentPoints));
+
+	// Economy / store: per-unit gold wallet, potion inventory and bought bonus points. Weapons,
+	// magazines and grenade amounts already persist via the AvailableWeapons / EffectAreas arrays above.
+	SaveData.SerializedModuleData.Add(TEXT("Gold"), FString::FromInt(Gold));
+	SaveData.SerializedModuleData.Add(TEXT("HealPotions"), FString::FromInt(HealPotions));
+	SaveData.SerializedModuleData.Add(TEXT("ManaPotions"), FString::FromInt(ManaPotions));
+	SaveData.SerializedModuleData.Add(TEXT("BonusCrowdControlTalentPoints"), FString::SanitizeFloat(BonusCrowdControlTalentPoints));
+	SaveData.SerializedModuleData.Add(TEXT("BonusTalentTreePoints"), FString::SanitizeFloat(BonusTalentTreePoints));
 
 	FString CrowdControlJson;
 	if (FJsonObjectConverter::UStructToJsonObjectString(CrowdControl, CrowdControlJson))
@@ -1064,6 +1392,28 @@ void UWeaponComponent::OnUnitLoad(AUnitBase* Unit, FUnitSaveData& SaveData)
 	if (FString* SpentStr = SaveData.SerializedModuleData.Find(TEXT("TalentTreeSpentPoints")))
 	{
 		TalentTreeSpentPoints = FCString::Atof(**SpentStr);
+	}
+
+	// Economy / store restore (see OnUnitSave).
+	if (FString* GoldStr = SaveData.SerializedModuleData.Find(TEXT("Gold")))
+	{
+		Gold = FCString::Atoi(**GoldStr);
+	}
+	if (FString* HealStr = SaveData.SerializedModuleData.Find(TEXT("HealPotions")))
+	{
+		HealPotions = FCString::Atoi(**HealStr);
+	}
+	if (FString* ManaStr = SaveData.SerializedModuleData.Find(TEXT("ManaPotions")))
+	{
+		ManaPotions = FCString::Atoi(**ManaStr);
+	}
+	if (FString* BonusCCStr = SaveData.SerializedModuleData.Find(TEXT("BonusCrowdControlTalentPoints")))
+	{
+		BonusCrowdControlTalentPoints = FCString::Atof(**BonusCCStr);
+	}
+	if (FString* BonusTreeStr = SaveData.SerializedModuleData.Find(TEXT("BonusTalentTreePoints")))
+	{
+		BonusTalentTreePoints = FCString::Atof(**BonusTreeStr);
 	}
 
 	// Restore assets from DataTables since JsonObjectConverter doesn't handle pointers/classes

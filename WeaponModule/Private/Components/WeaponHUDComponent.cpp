@@ -93,3 +93,8 @@ void UWeaponHUDComponent::Server_ResetTalentTree_Implementation(UWeaponComponent
 {
 	if (WeaponComp) WeaponComp->Server_ResetTalentTree();
 }
+
+void UWeaponHUDComponent::Server_BuyStoreItem_Implementation(UWeaponComponent* WeaponComp, int32 ItemIndex)
+{
+	if (WeaponComp) WeaponComp->BuyStoreItem(ItemIndex);
+}

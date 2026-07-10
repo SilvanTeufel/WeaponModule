@@ -36,6 +36,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	float AmountToAdd = 1.0f;
 
+	// --- Currency / potion pickup ---
+	/** Gold granted to the unit's UWeaponComponent on pickup (can be combined with a weapon/grenade grant). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Economy")
+	int32 GoldToAdd = 0;
+
+	/** Heal-potion charges granted on pickup. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Economy")
+	int32 HealPotionsToAdd = 0;
+
+	/** Mana-potion charges granted on pickup. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Economy")
+	int32 ManaPotionsToAdd = 0;
+
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void SyncWeaponDataFromTable();
 
