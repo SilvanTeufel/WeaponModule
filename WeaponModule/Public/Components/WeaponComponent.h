@@ -24,6 +24,10 @@ struct FWeaponData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool bCastShadow = false;
 
+	/** Whether the weapon ISM receives decals. Default off so ground/blood decals don't project onto weapons. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool bReceivesDecals = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FName SocketName = NAME_None;
 

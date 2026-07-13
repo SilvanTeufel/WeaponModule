@@ -11,13 +11,14 @@ UWeaponVisualManager::UWeaponVisualManager()
 {
 }
 
-UInstancedStaticMeshComponent* UWeaponVisualManager::GetOrCreateISMComponent(UStaticMesh* Mesh, bool bCastShadow)
+UInstancedStaticMeshComponent* UWeaponVisualManager::GetOrCreateISMComponent(UStaticMesh* Mesh, bool bCastShadow, bool bReceivesDecals)
 {
 	if (!Mesh) return nullptr;
 
 	FWeaponMeshKey Key;
 	Key.Mesh = Mesh;
 	Key.bCastShadow = bCastShadow;
+	Key.bReceivesDecals = bReceivesDecals;
 
 	if (UInstancedStaticMeshComponent** FoundISM = MeshToISMMap.Find(Key))
 	{
@@ -28,12 +29,14 @@ UInstancedStaticMeshComponent* UWeaponVisualManager::GetOrCreateISMComponent(USt
 	if (OwnerActor)
 	{
 #if WITH_EDITOR
-		OwnerActor->SetActorLabel(FString::Printf(TEXT("WeaponISM_%s_%s"), *Mesh->GetName(), bCastShadow ? TEXT("Shadow") : TEXT("NoShadow")));
+		OwnerActor->SetActorLabel(FString::Printf(TEXT("WeaponISM_%s_%s_%s"), *Mesh->GetName(),
+			bCastShadow ? TEXT("Shadow") : TEXT("NoShadow"), bReceivesDecals ? TEXT("Decals") : TEXT("NoDecals")));
 #endif
 		UInstancedStaticMeshComponent* NewISM = NewObject<UInstancedStaticMeshComponent>(OwnerActor);
 		NewISM->SetStaticMesh(Mesh);
 		NewISM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		NewISM->SetCastShadow(bCastShadow);
+		NewISM->SetReceivesDecals(bReceivesDecals);
 		NewISM->RegisterComponent();
 		OwnerActor->SetRootComponent(NewISM);
 		
@@ -44,7 +47,7 @@ UInstancedStaticMeshComponent* UWeaponVisualManager::GetOrCreateISMComponent(USt
 	return nullptr;
 }
 
-void UWeaponVisualManager::AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh, bool bCastShadow)
+void UWeaponVisualManager::AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh, bool bCastShadow, bool bReceivesDecals)
 {
 	UMassEntitySubsystem* EntitySubsystem = GetWorld()->GetSubsystem<UMassEntitySubsystem>();
 	if (!EntitySubsystem) return;
@@ -60,7 +63,7 @@ void UWeaponVisualManager::AssignWeapon(FMassEntityHandle Entity, UStaticMesh* M
 		RemoveWeapon(Entity);
 	}
 
-	UInstancedStaticMeshComponent* ISM = GetOrCreateISMComponent(Mesh, bCastShadow);
+	UInstancedStaticMeshComponent* ISM = GetOrCreateISMComponent(Mesh, bCastShadow, bReceivesDecals);
 	if (!ISM) return;
 
 	int32 NewIndex = INDEX_NONE;

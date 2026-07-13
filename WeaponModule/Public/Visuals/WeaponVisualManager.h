@@ -17,13 +17,15 @@ struct FWeaponMeshKey {
 	UStaticMesh* Mesh = nullptr;
 	UPROPERTY()
 	bool bCastShadow = false;
+	UPROPERTY()
+	bool bReceivesDecals = false;
 
 	bool operator==(const FWeaponMeshKey& Other) const {
-		return Mesh == Other.Mesh && bCastShadow == Other.bCastShadow;
+		return Mesh == Other.Mesh && bCastShadow == Other.bCastShadow && bReceivesDecals == Other.bReceivesDecals;
 	}
 
 	friend uint32 GetTypeHash(const FWeaponMeshKey& Key) {
-		return HashCombine(GetTypeHash(Key.Mesh), GetTypeHash(Key.bCastShadow));
+		return HashCombine(HashCombine(GetTypeHash(Key.Mesh), GetTypeHash(Key.bCastShadow)), GetTypeHash(Key.bReceivesDecals));
 	}
 };
 
@@ -38,9 +40,9 @@ class WEAPONMODULE_API UWeaponVisualManager : public UWorldSubsystem
 public:
 	UWeaponVisualManager();
 
-	UInstancedStaticMeshComponent* GetOrCreateISMComponent(UStaticMesh* Mesh, bool bCastShadow);
+	UInstancedStaticMeshComponent* GetOrCreateISMComponent(UStaticMesh* Mesh, bool bCastShadow, bool bReceivesDecals);
 
-	void AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh, bool bCastShadow);
+	void AssignWeapon(FMassEntityHandle Entity, UStaticMesh* Mesh, bool bCastShadow, bool bReceivesDecals);
 	void RemoveWeapon(FMassEntityHandle Entity);
 
 protected:
