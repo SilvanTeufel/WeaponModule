@@ -34,42 +34,6 @@ UWeaponComponent::UWeaponComponent()
 #endif
 }
 
-void UWeaponComponent::OnTurnReset_Implementation(int32 TeamId, int32 TurnCounter)
-{
-	// Turn-based integration (IRTSTurnResettable): at the start of the owning unit's team turn,
-	// clear the wall-clock weapon cooldown GameplayEffects so the unit can fire again this turn.
-	// These cooldown GEs are applied by UShootAbility::ApplyCooldown carrying the active weapon's
-	// FWeaponData.WeaponTag as a DynamicGrantedTag; UShootAbility::CheckCooldown gates on that tag.
-	// We remove any active effect owning any of this unit's weapon tags. Everything else — Ammo,
-	// magazines, Gold, potions, grenades, talents — deliberately PERSISTS across turns.
-	AActor* Owner = GetOwner();
-	if (!Owner || !Owner->HasAuthority())
-	{
-		return;
-	}
-
-	IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(Owner);
-	if (!ASCInterface)
-	{
-		return;
-	}
-
-	UAbilitySystemComponent* ASC = ASCInterface->GetAbilitySystemComponent();
-	if (!ASC)
-	{
-		return;
-	}
-
-	for (const FWeaponData& Weapon : AvailableWeapons)
-	{
-		if (Weapon.WeaponTag.IsValid())
-		{
-			const FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(Weapon.WeaponTag));
-			ASC->RemoveActiveEffects(Query);
-		}
-	}
-}
-
 void UWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();

@@ -9,7 +9,6 @@
 #include "Actors/Projectile.h"
 #include "Save/RTSSaveGame.h"
 #include "Store/StoreTypes.h"
-#include "Interfaces/RTSTurnResettable.h"
 #include "WeaponComponent.generated.h"
 
 class AWeaponStore;
@@ -440,7 +439,7 @@ struct FTalentTreeNodeState
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class WEAPONMODULE_API UWeaponComponent : public UActorComponent, public IRTSTurnResettable
+class WEAPONMODULE_API UWeaponComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -452,12 +451,6 @@ protected:
 
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	// --- IRTSTurnResettable (turn-based integration) ---
-	// Clears wall-clock weapon cooldown GameplayEffects at the start of the owning unit's team turn
-	// so a unit can fire again on its new turn. Ammo/magazines/gold/potions/talents PERSIST.
-	// Authority-only (guarded internally). No-op when the owner has no AbilitySystemComponent.
-	virtual void OnTurnReset_Implementation(int32 TeamId, int32 TurnCounter) override;
 
 	UPROPERTY(ReplicatedUsing = OnRep_AvailableWeapons, EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TArray<FWeaponData> AvailableWeapons;
