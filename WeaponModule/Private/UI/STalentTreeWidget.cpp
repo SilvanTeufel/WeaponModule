@@ -14,6 +14,26 @@
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
+#include "Materials/MaterialInterface.h"
+
+// Resolves the MakeBox tint for a panel brush.
+//   TEXTURE / colour brushes: Slate multiplies the tint in (SlateElementPixelShader.usf:318,
+//     "FinalColor = BaseColor * InVertex.Color"), so keep the legacy BrushTint * BackgroundColor. With
+//     the default white brush that is White * BackgroundColor == BackgroundColor, i.e. byte-identical
+//     to the pre-material behaviour - existing content needs no migration.
+//   MATERIAL brushes: Slate NEVER multiplies the tint into a material. The material path outputs
+//     GetMaterialEmissive/GetMaterialOpacity (SlateElementPixelShader.usf:245-251) and only offers the
+//     tint to the graph as the VertexColor node (:194). Folding a near-black BackgroundColor in would
+//     therefore not dim it, while BackgroundColor.A = 0 WOULD silently cull the whole draw - a material
+//     you just assigned would vanish with no log. So a material honours only the brush's own Tint,
+//     which defaults to White: renders as authored, never culled, and the Tint field stays live as the
+//     material's VertexColor input (exactly how UImage behaves). To drive a material's colour, use
+//     UTalentTreeWidget::GetBackgroundDynamicMaterial() and set parameters.
+static FLinearColor ResolveBrushTint(const FSlateBrush* Brush, const FLinearColor& InBackgroundColor, const FWidgetStyle& InWidgetStyle)
+{
+	const FLinearColor BrushTint = Brush->GetTint(InWidgetStyle);
+	return (Cast<UMaterialInterface>(Brush->GetResourceObject()) != nullptr) ? BrushTint : (BrushTint * InBackgroundColor);
+}
 
 void STalentTreeWidget::Construct(const FArguments& InArgs)
 {
@@ -44,8 +64,12 @@ void STalentTreeWidget::Construct(const FArguments& InArgs)
 	// A white rounded-box brush; every node disc is drawn with this and tinted per state.
 	NodeBackgroundBrush = FSlateRoundedBoxBrush(FLinearColor::White, NodeRadius, FVector2D(NodeRadius * 2.f, NodeRadius * 2.f));
 
-	// Plain fillable white box; tinted with BackgroundColor to dim the whole widget rect.
+	// Plain fillable white box; the owned fallback used when the UMG wrapper supplies no brush.
 	BackgroundBrush = FSlateColorBrush(FLinearColor::White);
+
+	BackgroundBrushPtr = InArgs._BackgroundBrush;
+	BorderBrushPtr     = InArgs._BorderBrush;
+	BorderPadding      = InArgs._BorderPadding;
 
 	NodeFont  = FCoreStyle::GetDefaultFontStyle("Bold", InArgs._NodeFontSize);
 	CountFont = FCoreStyle::GetDefaultFontStyle("Bold", InArgs._CountFontSize);
@@ -135,6 +159,46 @@ void STalentTreeWidget::SetNodes(TArray<FTalentTreeSlateNode> InNodes)
 	Invalidate(EInvalidateWidgetReason::Layout);
 }
 
+void STalentTreeWidget::SetPanelStyle(const FSlateBrush* InBackgroundBrush, const FSlateBrush* InBorderBrush,
+	const FLinearColor& InBackgroundColor, const FMargin& InBorderPadding)
+{
+	BackgroundBrushPtr = InBackgroundBrush;
+	BorderBrushPtr     = InBorderBrush;
+	BackgroundColor    = InBackgroundColor;
+	BorderPadding      = InBorderPadding;
+	// Paint, not Layout: none of these feed ComputeDesiredSize.
+	Invalidate(EInvalidateWidgetReason::Paint);
+}
+
+int32 STalentTreeWidget::PaintPanelBorder(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements,
+	int32 LayerId, const FWidgetStyle& InWidgetStyle) const
+{
+	// Frames the WIDGET RECT, never the ring: the ring pans with the mouse and its radius is
+	// DataTable-driven, so a ring-tracking frame would slide off-screen while dragging and resize per
+	// unit. Matches the Reset button's fixed-screen-space convention. "Screen frame" vs "panel frame"
+	// needs no branch here - that is the hosting container's job (see bFillViewport).
+	if (!BorderBrushPtr || BorderBrushPtr->DrawAs == ESlateBrushDrawType::NoDrawType)
+	{
+		return LayerId;
+	}
+
+	const FVector2D LocalSize = AllottedGeometry.GetLocalSize();
+	const FVector2D Size(
+		(float)LocalSize.X - BorderPadding.Left - BorderPadding.Right,
+		(float)LocalSize.Y - BorderPadding.Top - BorderPadding.Bottom);
+	if (Size.X <= 0.f || Size.Y <= 0.f)
+	{
+		return LayerId;
+	}
+
+	// Tinted with the border brush's own tint only - deliberately NOT multiplied by BackgroundColor, so
+	// "frame only, no dim" (BackgroundColor.A = 0) keeps the frame. The two brushes gate independently.
+	FSlateDrawElement::MakeBox(OutDrawElements, LayerId,
+		AllottedGeometry.ToPaintGeometry(Size, FSlateLayoutTransform(1.f, FVector2D(BorderPadding.Left, BorderPadding.Top))),
+		BorderBrushPtr, ESlateDrawEffect::None, BorderBrushPtr->GetTint(InWidgetStyle));
+	return LayerId + 1;
+}
+
 FVector2D STalentTreeWidget::GetNodeLocalCenter(const FTalentTreeSlateNode& Node, const FVector2D& LocalSize) const
 {
 	const FVector2D Center = LocalSize * 0.5f + PanOffset;
@@ -204,13 +268,17 @@ int32 STalentTreeWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 	const FVector2D Center = LocalSize * 0.5f + PanOffset;
 	const FPaintGeometry WholeGeom = AllottedGeometry.ToPaintGeometry();
 
-	// --- Full-rect dimmed backdrop ---
-	// Covers the whole widget so the tree has a solid background AND every click inside the widget
-	// is absorbed by Slate (never reaching the game -> no unit deselect / HUD close on click-away).
-	if (BackgroundColor.A > 0.f)
+	// --- Full-rect backdrop ---
+	// PURELY VISUAL. Clicks are absorbed by this widget's Visibility (the hit-test grid entry is added
+	// in the non-virtual SWidget::Paint, BEFORE OnPaint runs) plus OnMouseButtonDown returning Handled;
+	// culling this box does NOT let clicks through to the game world. (An earlier comment here claimed
+	// it did - that was wrong.) No alpha guard: MakeBox already culls NoDrawType, dead resource objects
+	// and tint alpha below KINDA_SMALL_NUMBER itself, and a hand-rolled guard here would silently
+	// delete a material whose BackgroundColor happens to be transparent.
 	{
+		const FSlateBrush* Bg = BackgroundBrushPtr ? BackgroundBrushPtr : &BackgroundBrush;
 		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, WholeGeom,
-			&BackgroundBrush, ESlateDrawEffect::None, BackgroundColor);
+			Bg, ESlateDrawEffect::None, ResolveBrushTint(Bg, BackgroundColor, InWidgetStyle));
 	}
 
 	int32 Layer = LayerId + 1;
@@ -244,7 +312,10 @@ int32 STalentTreeWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 			AllottedGeometry.ToPaintGeometry(TextSize, FSlateLayoutTransform(1.f, Center + FVector2D(-TextSize.X * 0.5f, NodeRadius + 6.f))),
 			Msg, NodeFont, ESlateDrawEffect::None, FLinearColor::White);
 
-		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, Layer + 3, InWidgetStyle, bParentEnabled);
+		// The border must draw on this exit path too - "no unit selected" is exactly the state you sit
+		// in while authoring the material. Returns Layer + 3 unchanged when no border is set.
+		const int32 EmptyStateLayer = PaintPanelBorder(AllottedGeometry, OutDrawElements, Layer + 3, InWidgetStyle);
+		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, EmptyStateLayer, InWidgetStyle, bParentEnabled);
 	}
 
 	// --- 1. Faint ring guide circles ---
@@ -373,6 +444,9 @@ int32 STalentTreeWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 			Msg, NodeFont, ESlateDrawEffect::None, FLinearColor::White);
 		Layer += 2;
 	}
+
+	// --- 3c. Optional border frame (over the tree, under the tooltip) ---
+	Layer = PaintPanelBorder(AllottedGeometry, OutDrawElements, Layer, InWidgetStyle);
 
 	// --- 4. Hover tooltip (drawn directly, on top) ---
 	PaintNodeTooltip(AllottedGeometry, OutDrawElements, Layer);
