@@ -13,6 +13,29 @@ UShootAbility::UShootAbility()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
+// ================================================================================================
+// LUX-ANPASSUNG (16.08.2026) — pro Waffe entscheiden, ob im Laufen gefeuert werden darf.
+// Die Basisklasse haelt die Einheit an, wenn bStopMovementOnActivation gesetzt ist
+// (UGameplayAbilityBase::ActivateAbility). Bisher war das eine feste Eigenschaft der
+// FAEHIGKEIT - damit galt fuer jede Waffe dasselbe. Jetzt entscheidet die WAFFE:
+// FWeaponData::bCanFireWhileMoving. Das Flag wird hier VOR dem Super-Aufruf uebertragen,
+// weil Super es unmittelbar auswertet.
+// ================================================================================================
+void UShootAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+                                    const FGameplayAbilityActorInfo* ActorInfo,
+                                    const FGameplayAbilityActivationInfo ActivationInfo,
+                                    const FGameplayEventData* TriggerEventData)
+{
+	if (UWeaponComponent* WeaponComp = GetWeaponComponent())
+	{
+		const FWeaponData& Data = WeaponComp->GetCurrentWeaponData();
+		bStopMovementOnActivation = !Data.bCanFireWhileMoving;
+	}
+
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+}
+// ===================== ENDE LUX-ANPASSUNG =======================================================
+
 bool UShootAbility::GetShootInfo(TSubclassOf<class AProjectile>& OutProjectileClass, FWeaponData& OutWeaponData, float& OutExtraDamage, int32& OutMaxPiercedTargets, TSubclassOf<class UGameplayEffect>& OutSelectedEffect, TSubclassOf<class UGameplayEffect>& OutSelectedEffect2, TSubclassOf<class UGameplayEffect>& OutSelectedEffect3)
 {
 	UWeaponComponent* WeaponComp = GetWeaponComponent();

@@ -45,6 +45,18 @@ public:
 	virtual const FGameplayTagContainer* GetCooldownTags() const override;
 	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const override;
 
+	// ============================================================================================
+	// LUX-ANPASSUNG (16.08.2026) — Waffe entscheidet ueber Bewegung beim Feuern.
+	// Liest FWeaponData::bCanFireWhileMoving und setzt danach bStopMovementOnActivation,
+	// BEVOR Super::ActivateAbility laeuft (dort wird das Flag ausgewertet).
+	// Muss beim Uebernehmen ins Original-WeaponModule mitwandern.
+	// ============================================================================================
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	                             const FGameplayAbilityActorInfo* ActorInfo,
+	                             const FGameplayAbilityActivationInfo ActivationInfo,
+	                             const FGameplayEventData* TriggerEventData) override;
+	// ===================== ENDE LUX-ANPASSUNG ===================================================
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TSubclassOf<class UGameplayEffect> AmmoCostEffectClass;
 

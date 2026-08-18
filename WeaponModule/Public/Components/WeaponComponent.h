@@ -58,6 +58,18 @@ struct FWeaponData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	float ReloadTime = 2.0f;
 
+	// ============================================================================================
+	// LUX-ANPASSUNG (16.08.2026) — pro Waffe entscheiden, ob im Laufen gefeuert werden darf.
+	// Muss beim Uebernehmen ins Original-WeaponModule mitwandern.
+	// Siehe REAPPLY_AFTER_PLUGIN_SWAP.md.
+	// true  = die Einheit darf waehrend des Feuerns weiterlaufen (Sturmgewehr, Pistole ...)
+	// false = beim Schuss anhalten (Scharfschuetzengewehr, schwere Waffen ...)
+	// Ausgewertet in UShootAbility::ActivateAbility, indem bStopMovementOnActivation
+	// (UGameplayAbilityBase) vor dem Super-Aufruf entsprechend gesetzt wird.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool bCanFireWhileMoving = true;
+	// ===================== ENDE LUX-ANPASSUNG ===================================================
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FGameplayTag WeaponTag;
 
